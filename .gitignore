@@ -1,8 +1,17 @@
-<<<<<<< HEAD
+# Dependencies
 node_modules/
+
+# Environment files
 .env
-uploads/
+.env.*
+!.env.example
+
+# Build output
+dist/
+build/
+
+# Logs
 *.log
-=======
-...
->>>>>>> origin/main
+
+# Uploaded files
+uploads/
