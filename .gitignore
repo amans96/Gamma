@@ -1,5 +1,8 @@
-node_modules
-# Keep environment variables out of version control
+<<<<<<< HEAD
+node_modules/
 .env
-
-/generated/prisma
+uploads/
+*.log
+=======
+...
+>>>>>>> origin/main
