@@ -1,4 +1,3 @@
-
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -12,8 +11,23 @@ const __dirname = path.dirname(__filename);
 const backendRoot = path.resolve(__dirname, "../..");
 
 // Upload folders
-const productUploadDir = path.join(backendRoot, "uploads", "products");
-const partnerUploadDir = path.join(backendRoot, "uploads", "partners");
+const productUploadDir = path.join(
+  backendRoot,
+  "uploads",
+  "products"
+);
+
+const partnerUploadDir = path.join(
+  backendRoot,
+  "uploads",
+  "partners"
+);
+
+const blogUploadDir = path.join(
+  backendRoot,
+  "uploads",
+  "blogs"
+);
 
 // Make sure folders exist
 if (!fs.existsSync(productUploadDir)) {
@@ -24,7 +38,15 @@ if (!fs.existsSync(partnerUploadDir)) {
   fs.mkdirSync(partnerUploadDir, { recursive: true });
 }
 
-// Create storage for products
+if (!fs.existsSync(blogUploadDir)) {
+  fs.mkdirSync(blogUploadDir, { recursive: true });
+}
+
+
+// ==========================================
+// PRODUCT STORAGE
+// ==========================================
+
 const productStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, productUploadDir);
@@ -41,7 +63,11 @@ const productStorage = multer.diskStorage({
   },
 });
 
-// Create storage for partners
+
+// ==========================================
+// PARTNER STORAGE
+// ==========================================
+
 const partnerStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, partnerUploadDir);
@@ -58,7 +84,32 @@ const partnerStorage = multer.diskStorage({
   },
 });
 
-// Only allow images
+
+// ==========================================
+// BLOG STORAGE
+// ==========================================
+
+const blogStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, blogUploadDir);
+  },
+
+  filename: (req, file, cb) => {
+    const uniqueName =
+      Date.now() +
+      "-" +
+      Math.round(Math.random() * 1e9) +
+      path.extname(file.originalname);
+
+    cb(null, uniqueName);
+  },
+});
+
+
+// ==========================================
+// IMAGE FILTER
+// ==========================================
+
 const fileFilter = (req, file, cb) => {
   const allowedTypes = [
     "image/jpeg",
@@ -72,13 +123,19 @@ const fileFilter = (req, file, cb) => {
     cb(null, true);
   } else {
     cb(
-      new Error("Only JPG, JPEG, PNG, WEBP and GIF images are allowed"),
+      new Error(
+        "Only JPG, JPEG, PNG, WEBP and GIF images are allowed"
+      ),
       false
     );
   }
 };
 
-// Product upload
+
+// ==========================================
+// PRODUCT UPLOAD
+// ==========================================
+
 export const uploadProduct = multer({
   storage: productStorage,
   fileFilter,
@@ -87,7 +144,11 @@ export const uploadProduct = multer({
   },
 });
 
-// Partner upload
+
+// ==========================================
+// PARTNER UPLOAD
+// ==========================================
+
 export const uploadPartner = multer({
   storage: partnerStorage,
   fileFilter,
@@ -96,3 +157,15 @@ export const uploadPartner = multer({
   },
 });
 
+
+// ==========================================
+// BLOG UPLOAD
+// ==========================================
+
+export const uploadBlog = multer({
+  storage: blogStorage,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+});

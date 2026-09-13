@@ -9,8 +9,11 @@ import prisma from "../utils/prisma.js";
 
 export const protect = async (req, res, next) => {
   try {
-    // Get Authorization header
+    console.log("AUTH: protect middleware reached");
+
     const authHeader = req.headers.authorization;
+
+    console.log("AUTH HEADER EXISTS:", !!authHeader);
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
@@ -18,18 +21,22 @@ export const protect = async (req, res, next) => {
       });
     }
 
-    // Extract token
     const token = authHeader.split(" ")[1];
 
-    // Verify token
+    console.log("AUTH: token received:", !!token);
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Find user in database
+    console.log("AUTH: token verified");
+    console.log("AUTH: decoded userId:", decoded.userId);
+
     const user = await prisma.user.findUnique({
-   where: {
-  id: decoded.userId,
-},
+      where: {
+        id: decoded.userId,
+      },
     });
+
+    console.log("AUTH: user found:", !!user);
 
     if (!user) {
       return res.status(401).json({
@@ -37,8 +44,9 @@ export const protect = async (req, res, next) => {
       });
     }
 
-    // Attach user to request
     req.user = user;
+
+    console.log("AUTH: authentication successful");
 
     next();
 
@@ -59,6 +67,7 @@ export const protect = async (req, res, next) => {
 
     return res.status(500).json({
       message: "Authentication failed.",
+      error: error.message,
     });
   }
 };
