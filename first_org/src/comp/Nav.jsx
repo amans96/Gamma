@@ -81,7 +81,7 @@ export default function Nav() {
             </div>
           </div>
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-wide text-white drop-shadow-lg">
-            Company Name
+            Gamma <span className="text-[#e78c16]">SOLUTIONS</span>
           </h1>
         </div>
 

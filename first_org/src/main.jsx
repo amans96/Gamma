@@ -1,4 +1,3 @@
-
 import "./index.css";
 
 import ReactDOM from "react-dom/client";
@@ -15,8 +14,9 @@ import About from "./pages/About.jsx";
 import Contact from "./pages/Contact.jsx";
 import Products from "./pages/Products.jsx";
 import Project from "./pages/Projects.jsx";
-import ProductForm from "./pages/admin/ProductForm.jsx";
+import BlogPage from "./pages/BlogPage.jsx";
 import ServicesPage from "./pages/ServicesPage.jsx";
+import WhyChooseUsDetail from "./comp/WhyChooseUsDetail.jsx";
 // Auth
 import Login from "./pages/Login.jsx";
 
@@ -24,13 +24,12 @@ import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/admin/Dashboard.jsx";
 import AdminLayout from "./comp/admin/AdminLayout.jsx";
 import Product from "./pages/admin/Product.jsx";
+import ProductForm from "./pages/admin/ProductForm.jsx";
 import Services from "./pages/admin/Services.jsx";
 import Blog from "./pages/admin/Blog.jsx";
 import Partners from "./pages/admin/Partners.jsx";
 
-
 import ProtectedRoute from "./comp/ProtectedRoute.jsx";
-
 
 const router = createBrowserRouter([
   // =====================================
@@ -65,23 +64,9 @@ const router = createBrowserRouter([
         element: <Project />,
       },
 
+      // Services page
       {
-        path: "services/installation",
-        element: <ServicesPage />,
-      },
-
-      {
-        path: "services/maintenance",
-        element: <ServicesPage />,
-      },
-
-      {
-        path: "services/repair",
-        element: <ServicesPage />,
-      },
-
-      {
-        path: "services/consulting",
+        path: "services",
         element: <ServicesPage />,
       },
 
@@ -89,6 +74,11 @@ const router = createBrowserRouter([
         path: "login",
         element: <Login />,
       },
+      {path: "blog", element: <BlogPage />},
+      {
+  path: "/why-choose-us/:slug",
+  element: <WhyChooseUsDetail />,
+},
     ],
   },
 
@@ -141,7 +131,6 @@ const router = createBrowserRouter([
     ],
   },
 ]);
-
 
 ReactDOM.createRoot(
   document.getElementById("root")

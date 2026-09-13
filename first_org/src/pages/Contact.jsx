@@ -1,15 +1,20 @@
+import ContactForm from '../comp/ContactForm.jsx';
+import ContactHero from "../comp/ContactHero.jsx";
+import contact from "../assets/image.jpeg"
+import Map from '../comp/Map.jsx';
+import ContactInfo from '../comp/ContactInfo.jsx';
+import Footertemp from '../comp/Footertemp.jsx'
+export default function Contact() {
+    return (
+        <div>
+          
+            <ContactHero image={contact} title="Contact Us" />
+            <ContactForm />
+            <Map/>
+            <ContactInfo/>
+            <Footertemp/>
 
-function Contact() {
-
-  return (
-    <div>
-      <h1 className="text-4xl font-bold text-center mt-10">
-        About Us
-      </h1>
-    </div>
-  )
+            
+        </div>
+    );
 }
-
-
-
-export default Contact;

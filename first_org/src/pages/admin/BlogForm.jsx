@@ -247,10 +247,9 @@ export default function BlogForm({
             : null,
       };
 
-      const url = isEditing
-        ? `${API_URL}/blog/${blogPost.id}`
-        : `${API_URL}/blog`;
-
+   const url = isEditing
+  ? `${API_URL}/blog-posts/${blogPost.id}`
+  : `${API_URL}/blog-posts`;
       const method = isEditing ? "PUT" : "POST";
 
       const response = await fetch(url, {

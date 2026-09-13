@@ -44,19 +44,19 @@ export const bottomNav = [
     dropdown: [
       {
         title: "Installation",
-        path: "/services/installation",
+        path: "/services",
       },
       {
         title: "Maintenance",
-        path: "/services/maintenance",
+        path: "/services",
       },
       {
         title: "Repair",
-        path: "/services/repair",
+        path: "/services",
       },
       {
         title: "Consulting",
-        path: "/services/consulting",
+        path: "/services",
       },
     ],
   },

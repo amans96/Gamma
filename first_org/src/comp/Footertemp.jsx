@@ -4,7 +4,7 @@ import {
   FaYoutube,
   FaDiscord,
 } from "react-icons/fa";
-
+import { Link } from "react-router-dom";
 import { footerLinks, socialLinks } from "../data/footerData";
 
 const Footer = () => {
@@ -59,9 +59,9 @@ const Footer = () => {
                   key={item.title}
                   className="hover:text-white cursor-pointer transition"
                 >
-                  <a href={item.link} className="hover:text-white transition">
-                    {item.title}
-                  </a>
+                <Link to={item.link} className="hover:text-white transition">
+  {item.title}
+</Link>
                 </li>
               ))}
             </ul>
@@ -78,9 +78,9 @@ const Footer = () => {
                   key={item.title}
                   className="hover:text-white cursor-pointer transition"
                 >
-                  <a href={item.link} className="hover:text-white transition">
-                    {item.title}
-                  </a>
+                 <Link to={item.link} className="hover:text-white transition">
+  {item.title}
+</Link>
                 </li>
               ))}
             </ul>
@@ -97,9 +97,9 @@ const Footer = () => {
                   key={item.title}
                   className="hover:text-white cursor-pointer transition"
                 >
-                  <a href={item.link} className="hover:text-white transition">
-                    {item.title}
-                  </a>
+               <Link to={item.link} className="hover:text-white transition">
+  {item.title}
+</Link>
                 </li>
               ))}
             </ul>

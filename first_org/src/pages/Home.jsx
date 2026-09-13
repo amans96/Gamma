@@ -6,7 +6,7 @@ import Testimonial from '../comp/Testimonialtemp.jsx'
 import TrustedCompanies from '../comp/TrustedCompanies.jsx'
 import Faqs from '../comp/Faq.jsx'
 import Footertemp from '../comp/Footertemp.jsx'
-import heroVideo from "../assets/hero.mp4";
+import heroVideo from "../assets/GAMA.mp4";
 function Home() {
 
   return (
