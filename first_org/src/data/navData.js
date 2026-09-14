@@ -23,19 +23,19 @@ export const bottomNav = [
     dropdown: [
       {
         title: "Power Transformers",
-        path: "/products/power",
+        path: "/products",
       },
       {
         title: "Distribution Transformers",
-        path: "/products/distribution",
+        path: "/products",
       },
       {
         title: "Dry-Type Transformers",
-        path: "/products/dry-type",
+        path: "/products",
       },
       {
         title: "Custom Solutions",
-        path: "/products/custom",
+        path: "/products",
       },
     ],
   },
