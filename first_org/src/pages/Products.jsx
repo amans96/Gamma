@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search, ArrowDownAZ, ArrowUpAZ, X, PackageX, RefreshCw } from "lucide-react";
 
-const API_URL = "http://localhost:5000/api";
-const SERVER_URL = "http://localhost:5000";
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+const BACKEND_URL =
+  import.meta.env.VITE_API_URL?.replace("/api", "") ||
+  "http://localhost:5000";
 
 export default function Product() {
   const [products, setProducts] = useState([]);
@@ -54,9 +58,9 @@ export default function Product() {
       return image;
     }
     if (image.startsWith("/")) {
-      return `${SERVER_URL}${image}`;
+      return `${BACKEND_URL}${image}`;
     }
-    return `${SERVER_URL}/${image}`;
+    return `${BACKEND_URL}image}`;
   };
 
   // =========================================================

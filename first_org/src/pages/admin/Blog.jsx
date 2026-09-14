@@ -1,8 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import BlogForm from "./BlogForm";
 
-const API_URL = "http://localhost:5000/api";
-const SERVER_URL = "http://localhost:5000";
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+const BACKEND_URL =
+  import.meta.env.VITE_API_URL?.replace("/api", "") ||
+  "http://localhost:5000";
 
 export default function Blog() {
   const [posts, setPosts] = useState([]);
@@ -29,7 +33,7 @@ export default function Blog() {
       return image;
     }
 
-    return `${SERVER_URL}${
+    return `${BACKEND_URL}${
       image.startsWith("/") ? image : `/${image}`
     }`;
   };

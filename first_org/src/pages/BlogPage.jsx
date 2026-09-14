@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react";
 import Footertemp from "../comp/Footertemp.jsx";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 const BACKEND_URL =
   import.meta.env.VITE_API_URL?.replace("/api", "") ||
   "http://localhost:5000";
@@ -104,7 +105,7 @@ export default function Blog() {
                           src={
                             post.featuredImage.startsWith("http")
                               ? post.featuredImage
-                              : `${SERVER_URL}${post.featuredImage}`
+                              : `${BACKEND_URL}${post.featuredImage}`
                           }
                           alt={post.title}
                           className="w-full h-56 object-cover"

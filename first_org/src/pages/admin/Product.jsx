@@ -13,9 +13,12 @@ import {
   PackageOpen 
 } from "lucide-react";
 import ProductModal from "./ProductForm";
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-const API_URL = "http://localhost:5000/api";
-const SERVER_URL = "http://localhost:5000";
+const BACKEND_URL =
+  import.meta.env.VITE_API_URL?.replace("/api", "") ||
+  "http://localhost:5000";
 
 // Framer Motion Variants
 const containerVariants = {
@@ -157,7 +160,7 @@ export default function Product() {
   const getImageUrl = (image) => {
     if (!image) return "";
     if (image.startsWith("http://") || image.startsWith("https://")) return image;
-    return `${SERVER_URL}${image.startsWith("/") ? image : `/${image}`}`;
+    return `${BACKEND_URL}${image.startsWith("/") ? image : `/${image}`}`;
   };
 
   if (loading) {
