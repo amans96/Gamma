@@ -2,8 +2,10 @@
 import { useEffect, useState } from "react";
 import Footertemp from "../comp/Footertemp.jsx";
 
-const API_URL = "http://localhost:5000/api";
-const SERVER_URL = "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const BACKEND_URL =
+  import.meta.env.VITE_API_URL?.replace("/api", "") ||
+  "http://localhost:5000";
 
 export default function Blog() {
   const [expandedPost, setExpandedPost] = useState(null);

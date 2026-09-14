@@ -9,7 +9,10 @@ import {
   ChevronUp,
 } from "lucide-react";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const BACKEND_URL =
+  import.meta.env.VITE_API_URL?.replace("/api", "") ||
+  "http://localhost:5000";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -78,23 +81,22 @@ export default function Services() {
   // ==========================================
   // IMAGE URL
   // ==========================================
+const getImageUrl = (image) => {
+  if (!image) return "";
 
-  const getImageUrl = (image) => {
-    if (!image) return "";
+  if (
+    image.startsWith("http://") ||
+    image.startsWith("https://")
+  ) {
+    return image;
+  }
 
-    if (
-      image.startsWith("http://") ||
-      image.startsWith("https://")
-    ) {
-      return image;
-    }
+  if (image.startsWith("/")) {
+    return `${BACKEND_URL}${image}`;
+  }
 
-    if (image.startsWith("/")) {
-      return `http://localhost:5000${image}`;
-    }
-
-    return `http://localhost:5000/${image}`;
-  };
+  return `${BACKEND_URL}/${image}`;
+};
 
   // ==========================================
   // SEE MORE / SEE LESS
