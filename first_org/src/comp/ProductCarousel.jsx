@@ -2,8 +2,8 @@
 import { useState, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const API_URL = "http://localhost:5000/api";
-
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+console.log("API_URL:", API_URL);
 export default function ProductCarousel() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -112,11 +112,11 @@ export default function ProductCarousel() {
 
     // If backend gives /uploads/image.jpg
     if (image.startsWith("/")) {
-      return `http://localhost:5000${image}`;
+      return `${API_URL}${image}`;
     }
 
     // If backend gives uploads/image.jpg
-    return `http://localhost:5000/${image}`;
+    return `${API_URL}/${image}`;
   };
 
   // =========================================================
