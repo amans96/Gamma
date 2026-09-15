@@ -1,171 +1,55 @@
 import multer from "multer";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from "url";
+import { v2 as cloudinary } from "cloudinary";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
+import dotenv from "dotenv";
 
-// Get the current file's directory
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Backend root
-const backendRoot = path.resolve(__dirname, "../..");
-
-// Upload folders
-const productUploadDir = path.join(
-  backendRoot,
-  "uploads",
-  "products"
-);
-
-const partnerUploadDir = path.join(
-  backendRoot,
-  "uploads",
-  "partners"
-);
-
-const blogUploadDir = path.join(
-  backendRoot,
-  "uploads",
-  "blogs"
-);
-
-// Make sure folders exist
-if (!fs.existsSync(productUploadDir)) {
-  fs.mkdirSync(productUploadDir, { recursive: true });
-}
-
-if (!fs.existsSync(partnerUploadDir)) {
-  fs.mkdirSync(partnerUploadDir, { recursive: true });
-}
-
-if (!fs.existsSync(blogUploadDir)) {
-  fs.mkdirSync(blogUploadDir, { recursive: true });
-}
-
+dotenv.config();
 
 // ==========================================
-// PRODUCT STORAGE
+// CLOUDINARY CONFIG
+// ==========================================
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// ==========================================
+// CLOUDINARY STORAGES (Different Folders)
 // ==========================================
 
-const productStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, productUploadDir);
-  },
-
-  filename: (req, file, cb) => {
-    const uniqueName =
-      Date.now() +
-      "-" +
-      Math.round(Math.random() * 1e9) +
-      path.extname(file.originalname);
-
-    cb(null, uniqueName);
+// 1. Product Storage
+const productStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "products", // Creates a 'products' folder in Cloudinary
+    allowed_formats: ["jpg", "jpeg", "png", "webp", "gif"],
   },
 });
 
-
-// ==========================================
-// PARTNER STORAGE
-// ==========================================
-
-const partnerStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, partnerUploadDir);
-  },
-
-  filename: (req, file, cb) => {
-    const uniqueName =
-      Date.now() +
-      "-" +
-      Math.round(Math.random() * 1e9) +
-      path.extname(file.originalname);
-
-    cb(null, uniqueName);
+// 2. Partner Storage
+const partnerStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "partners", // Creates a 'partners' folder in Cloudinary
+    allowed_formats: ["jpg", "jpeg", "png", "webp", "gif"],
   },
 });
 
-
-// ==========================================
-// BLOG STORAGE
-// ==========================================
-
-const blogStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, blogUploadDir);
-  },
-
-  filename: (req, file, cb) => {
-    const uniqueName =
-      Date.now() +
-      "-" +
-      Math.round(Math.random() * 1e9) +
-      path.extname(file.originalname);
-
-    cb(null, uniqueName);
+// 3. Blog Storage
+const blogStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "blogs", // Creates a 'blogs' folder in Cloudinary
+    allowed_formats: ["jpg", "jpeg", "png", "webp", "gif"],
   },
 });
 
-
 // ==========================================
-// IMAGE FILTER
+// UPLOAD MIDDLEWARES
 // ==========================================
+const limits = { fileSize: 5 * 1024 * 1024 }; // 5MB limit
 
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = [
-    "image/jpeg",
-    "image/jpg",
-    "image/png",
-    "image/webp",
-    "image/gif",
-  ];
-
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(
-      new Error(
-        "Only JPG, JPEG, PNG, WEBP and GIF images are allowed"
-      ),
-      false
-    );
-  }
-};
-
-
-// ==========================================
-// PRODUCT UPLOAD
-// ==========================================
-
-export const uploadProduct = multer({
-  storage: productStorage,
-  fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024,
-  },
-});
-
-
-// ==========================================
-// PARTNER UPLOAD
-// ==========================================
-
-export const uploadPartner = multer({
-  storage: partnerStorage,
-  fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024,
-  },
-});
-
-
-// ==========================================
-// BLOG UPLOAD
-// ==========================================
-
-export const uploadBlog = multer({
-  storage: blogStorage,
-  fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024,
-  },
-});
+export const uploadProduct = multer({ storage: productStorage, limits });
+export const uploadPartner = multer({ storage: partnerStorage, limits });
+export const uploadBlog = multer({ storage: blogStorage, limits });

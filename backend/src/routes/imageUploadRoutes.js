@@ -1,14 +1,15 @@
-
 import express from "express";
 
 import {
   uploadProductImage,
   uploadPartnerImage,
+  uploadBlogImage // (Optional: If you use it)
 } from "../controllers/imageUploadController.js";
 
 import {
   uploadProduct,
   uploadPartner,
+  uploadBlog // (Optional: If you use it)
 } from "../middleware/uploadMiddleware.js";
 
 import {
@@ -18,6 +19,9 @@ import {
 
 const router = express.Router();
 
+// ==========================================
+// UPLOAD PRODUCT ROUTE
+// ==========================================
 router.post(
   "/product",
   protect,
@@ -26,6 +30,9 @@ router.post(
   uploadProductImage
 );
 
+// ==========================================
+// UPLOAD PARTNER ROUTE
+// ==========================================
 router.post(
   "/partner",
   protect,
@@ -43,5 +50,15 @@ router.post(
   uploadPartnerImage
 );
 
-export default router;
+// ==========================================
+// UPLOAD BLOG ROUTE (Optional)
+// ==========================================
+router.post(
+  "/blog",
+  protect,
+  adminOnly,
+  uploadBlog.single("image"),
+  uploadBlogImage
+);
 
+export default router;

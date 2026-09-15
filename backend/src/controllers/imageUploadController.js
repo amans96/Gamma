@@ -1,7 +1,6 @@
 // ==========================================
 // UPLOAD PRODUCT IMAGE
 // ==========================================
-
 export const uploadProductImage = async (req, res) => {
   try {
     if (!req.file) {
@@ -10,10 +9,10 @@ export const uploadProductImage = async (req, res) => {
       });
     }
 
-    const imageUrl = `/uploads/products/${req.file.filename}`;
+    // Cloudinary puts the full secure URL right into req.file.path!
+    const imageUrl = req.file.path;
 
-    console.log("PRODUCT IMAGE SAVED:");
-    console.log("File:", req.file.path);
+    console.log("PRODUCT IMAGE SAVED TO CLOUDINARY:");
     console.log("URL:", imageUrl);
 
     return res.status(200).json({
@@ -22,7 +21,6 @@ export const uploadProductImage = async (req, res) => {
     });
   } catch (error) {
     console.error("PRODUCT IMAGE UPLOAD ERROR:", error);
-
     return res.status(500).json({
       message: "Failed to upload product image",
       error: error.message,
@@ -30,11 +28,9 @@ export const uploadProductImage = async (req, res) => {
   }
 };
 
-
 // ==========================================
 // UPLOAD PARTNER IMAGE
 // ==========================================
-
 export const uploadPartnerImage = async (req, res) => {
   try {
     if (!req.file) {
@@ -43,10 +39,9 @@ export const uploadPartnerImage = async (req, res) => {
       });
     }
 
-    const imageUrl = `/uploads/partners/${req.file.filename}`;
+    const imageUrl = req.file.path;
 
-    console.log("PARTNER IMAGE SAVED:");
-    console.log("File:", req.file.path);
+    console.log("PARTNER IMAGE SAVED TO CLOUDINARY:");
     console.log("URL:", imageUrl);
 
     return res.status(200).json({
@@ -55,7 +50,6 @@ export const uploadPartnerImage = async (req, res) => {
     });
   } catch (error) {
     console.error("PARTNER IMAGE UPLOAD ERROR:", error);
-
     return res.status(500).json({
       message: "Failed to upload partner image",
       error: error.message,
@@ -63,11 +57,9 @@ export const uploadPartnerImage = async (req, res) => {
   }
 };
 
-
 // ==========================================
 // UPLOAD BLOG IMAGE
 // ==========================================
-
 export const uploadBlogImage = async (req, res) => {
   try {
     if (!req.file) {
@@ -76,10 +68,9 @@ export const uploadBlogImage = async (req, res) => {
       });
     }
 
-    const imageUrl = `/uploads/blogs/${req.file.filename}`;
+    const imageUrl = req.file.path;
 
-    console.log("BLOG IMAGE SAVED:");
-    console.log("File:", req.file.path);
+    console.log("BLOG IMAGE SAVED TO CLOUDINARY:");
     console.log("URL:", imageUrl);
 
     return res.status(200).json({
@@ -88,7 +79,6 @@ export const uploadBlogImage = async (req, res) => {
     });
   } catch (error) {
     console.error("BLOG IMAGE UPLOAD ERROR:", error);
-
     return res.status(500).json({
       message: "Failed to upload blog image",
       error: error.message,
