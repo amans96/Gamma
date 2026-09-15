@@ -58,7 +58,7 @@ export default function ProductModal({ isOpen, product, onClose, onSuccess }) {
         name: product.name || "",
         slug: product.slug || "",
         description: product.description || "",
-        image: product.image || "", // This will now be a Cloudinary URL
+        image: product.image || "", 
         status: product.status || "ACTIVE",
       });
 
@@ -140,8 +140,8 @@ export default function ProductModal({ isOpen, product, onClose, onSuccess }) {
     setUploading(true);
 
     try {
-      // Changed endpoint from '/images/product' to '/images/upload' to match your backend
-      const response = await fetch(`${API_URL}/images/upload`, {
+      // FIX: Changed endpoint to match your actual backend route: router.post("/product", ...)
+      const response = await fetch(`${API_URL}/images/product`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -156,8 +156,8 @@ export default function ProductModal({ isOpen, product, onClose, onSuccess }) {
         throw new Error(data.message || "Failed to upload image to Cloudinary");
       }
 
-      // Backend should now return the Cloudinary URL (e.g., res.json({ success: true, imageUrl: req.file.path }))
-      return data.imageUrl || data.image; 
+      // Backend returns { image: "https://..." }
+      return data.image || data.imageUrl; 
     } finally {
       setUploading(false);
     }
@@ -176,8 +176,10 @@ export default function ProductModal({ isOpen, product, onClose, onSuccess }) {
 
       const token = localStorage.getItem("token");
       const isEditing = Boolean(product);
+      
+      // Keep this! It properly checks for MongoDB _id
       const url = isEditing
-        ? `${API_URL}/products/${product.id}`
+        ? `${API_URL}/products/${product._id || product.id}`
         : `${API_URL}/products`;
 
       // 1. If there's a new image, upload it first to get the Cloudinary URL
