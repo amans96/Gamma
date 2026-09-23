@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-
+import { Link } from "react-router-dom";
 // 1. Better URL parsing
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -321,10 +321,11 @@ export default function ProductCarousel() {
               transition: transition ? "transform 700ms cubic-bezier(0.4, 0, 0.2, 1)" : "none",
             }}
           >
-            {extendedProducts.map((product, index) => (
-              <div
+        {extendedProducts.map((product, index) => (
+              <Link
+                to="/products" // <-- This matches your routing snippet perfectly!
                 key={`${product.id}-${index}`}
-                className="relative shrink-0 overflow-hidden rounded-[20px] sm:rounded-[30px]"
+                className="relative shrink-0 overflow-hidden rounded-[20px] sm:rounded-[30px] block cursor-pointer transition-transform hover:opacity-95"
                 style={{
                   width: `${slideWidth}px`,
                   height: `${cardHeight}px`,
@@ -374,8 +375,8 @@ export default function ProductCarousel() {
                   >
                     {product.description}
                   </p>
-                </div>
-              </div>
+             </div>
+              </Link>
             ))}
           </div>
         </div>

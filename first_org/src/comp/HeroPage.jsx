@@ -1,19 +1,23 @@
-
-import React, { useRef, useState } from "react";
-import { Play, Pause, Maximize } from "lucide-react";
+import React, { useRef, useState, useEffect } from "react";
+import { Play, Pause, Volume2, VolumeX, Maximize, Minimize } from "lucide-react";
 
 const HeroPage = ({
   pageName,
   media,
   mediaType = "image",
 }) => {
+  const containerRef = useRef(null);
   const videoRef = useRef(null);
+  
   const [isPlaying, setIsPlaying] = useState(true);
+  const [isMuted, setIsMuted] = useState(true); // Autoplay usually requires starting muted
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Play / Pause video
+  // ==========================================
+  // PLAY / PAUSE
+  // ==========================================
   const togglePlay = () => {
     if (!videoRef.current) return;
-
     if (videoRef.current.paused) {
       videoRef.current.play();
       setIsPlaying(true);
@@ -23,34 +27,59 @@ const HeroPage = ({
     }
   };
 
-  // Fullscreen video
-  const handleFullscreen = () => {
+  // ==========================================
+  // AUDIO (MUTE / UNMUTE)
+  // ==========================================
+  const toggleMute = () => {
     if (!videoRef.current) return;
+    videoRef.current.muted = !videoRef.current.muted;
+    setIsMuted(videoRef.current.muted);
+  };
 
-    if (videoRef.current.requestFullscreen) {
-      videoRef.current.requestFullscreen();
-    } else if (videoRef.current.webkitRequestFullscreen) {
-      // Safari
-      videoRef.current.webkitRequestFullscreen();
+  // ==========================================
+  // FULLSCREEN
+  // ==========================================
+  const toggleFullscreen = () => {
+    if (!containerRef.current) return;
+
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().catch((err) => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
     }
   };
 
+  // Listen for 'Esc' key fullscreen exits to update the icon
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
   return (
-    <section className="relative min-h-screen overflow-hidden">
-
+    <section 
+      ref={containerRef} 
+      className="relative flex min-h-[100dvh] w-full flex-col justify-center overflow-hidden bg-black"
+    >
       {/* Background Media */}
-      <div className="absolute inset-0">
-
+      <div className="absolute inset-0 z-0">
         {mediaType === "video" ? (
           <video
             ref={videoRef}
             autoPlay
             loop
-            muted
+            muted={isMuted}
             playsInline
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
-            className="w-full h-full object-cover"
+            className="h-full w-full object-cover"
           >
             <source src={media} type="video/mp4" />
             Your browser does not support the video tag.
@@ -59,67 +88,62 @@ const HeroPage = ({
           <img
             src={media}
             alt={pageName}
-            className="w-full h-full object-cover"
+            className="h-full w-full object-cover"
           />
         )}
 
         {/* Overlay */}
-        <div className="absolute inset-0 bg-black/30"></div>
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"></div>
       </div>
 
       {/* Page Name */}
-      <div className="relative z-10 min-h-screen flex items-center justify-center">
-        <h1 className="text-5xl md:text-6xl font-bold text-white">
+      <div className="relative z-10 flex flex-1 items-center justify-center px-4">
+        <h1 className="text-center text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white drop-shadow-lg">
           {pageName}
         </h1>
       </div>
 
-      {/* Video Controls */}
+      {/* Aesthetic Video Controls Pill */}
       {mediaType === "video" && (
-        <div className="absolute bottom-8 left-0 right-0 z-20 flex items-center justify-between px-6 md:px-10">
-
+        <div className="absolute bottom-6 left-6 z-20 md:bottom-10 md:left-10 flex items-center gap-2 rounded-full border border-white/20 bg-black/40 p-2 backdrop-blur-md shadow-xl transition-all">
+          
           {/* Play / Pause */}
           <button
             onClick={togglePlay}
             aria-label={isPlaying ? "Pause video" : "Play video"}
-            className="
-              flex items-center justify-center
-              w-11 h-11
-              rounded-full
-              bg-black/50
-              backdrop-blur-sm
-              text-white
-              border border-white/30
-              hover:bg-white hover:text-black
-              transition-all duration-300
-              shadow-lg
-            "
+            className="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-full text-white transition-colors duration-200 hover:bg-white/20"
           >
             {isPlaying ? (
-              <Pause size={20} />
+              <Pause size={22} className="fill-current" />
             ) : (
-              <Play size={20} className="ml-0.5" />
+              <Play size={22} className="ml-1 fill-current" />
             )}
           </button>
 
-          {/* Fullscreen */}
+          {/* Audio Toggle */}
           <button
-            onClick={handleFullscreen}
-            aria-label="Fullscreen video"
-            className="
-              flex items-center justify-center
-              w-11 h-11
-              rounded-full
-              bg-black/50
-              backdrop-blur-sm
-              text-white
-              border border-white/30
-              hover:bg-white hover:text-black
-              transition-all duration-300
-              shadow-lg
-            "
+            onClick={toggleMute}
+            aria-label={isMuted ? "Unmute video" : "Mute video"}
+            className="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-full text-white transition-colors duration-200 hover:bg-white/20"
           >
-            <Maximize size={20} />
+            {isMuted ? (
+              <VolumeX size={24} strokeWidth={2} />
+            ) : (
+              <Volume2 size={24} strokeWidth={2} />
+            )}
+          </button>
+
+          {/* Fullscreen Toggle */}
+          <button
+            onClick={toggleFullscreen}
+            aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+            className="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-full text-white transition-colors duration-200 hover:bg-white/20"
+          >
+            {isFullscreen ? (
+              <Minimize size={22} strokeWidth={2.5} />
+            ) : (
+              <Maximize size={22} strokeWidth={2.5} />
+            )}
           </button>
 
         </div>
@@ -130,4 +154,3 @@ const HeroPage = ({
 };
 
 export default HeroPage;
-
