@@ -1,16 +1,16 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Search, 
-  Plus, 
-  Eye, 
-  Edit, 
-  Trash2, 
-  X, 
-  AlertTriangle, 
-  Loader2, 
-  PackageOpen 
+import {
+  Search,
+  Plus,
+  Eye,
+  Pencil,
+  Trash2,
+  X,
+  AlertTriangle,
+  Loader2,
+  PackageOpen
 } from "lucide-react";
 import ProductModal from "./ProductForm";
 const API_URL =
@@ -305,37 +305,39 @@ export default function Product() {
                     </td>
 
                     {/* ACTIONS */}
-                    <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                      <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedProduct(product);
-                            setProductModalOpen(true);
-                          }}
-                          className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                          title="View Details"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <Link
-                          to={`/admin/products/${product.id}/edit`}
-                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Edit"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => confirmDelete(product)}
-                          disabled={deleting}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                          title="Delete"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
+                    {/* ACTIONS */}
+<td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
+  <div className="flex items-center justify-end gap-2">
+
+    {/* View */}
+   
+
+    {/* Edit */}
+    <button
+      type="button"
+      onClick={() => {
+        setSelectedProduct(product);
+        setProductModalOpen(true);
+      }}
+      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+      title="Edit Product"
+    >
+      <Pencil className="h-4 w-4" />
+    </button>
+
+    {/* Delete */}
+    <button
+      type="button"
+      onClick={() => confirmDelete(product)}
+      disabled={deleting}
+      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+      title="Delete Product"
+    >
+      <Trash2 className="h-4 w-4" />
+    </button>
+
+  </div>
+</td>
                   </motion.tr>
                 ))}
               </motion.tbody>

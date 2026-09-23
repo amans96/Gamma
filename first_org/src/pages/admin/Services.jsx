@@ -13,8 +13,12 @@ import {
 } from "lucide-react";
 import ServiceForm from "./ServiceForm";
 
-const API_URL = "http://localhost:5000/api";
-const SERVER_URL = "http://localhost:5000";
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+const BACKEND_URL =
+  import.meta.env.VITE_API_URL?.replace("/api", "") ||
+  "http://localhost:5000";
 
 // Framer Motion Variants
 const containerVariants = {
@@ -56,7 +60,7 @@ export default function Services() {
     if (image.startsWith("http://") || image.startsWith("https://")) {
       return image;
     }
-    return `${SERVER_URL}${image.startsWith("/") ? image : `/${image}`}`;
+    return `${BACKEND_URL}${image.startsWith("/") ? image : `/${image}`}`;
   };
 
   // ==========================================
@@ -344,14 +348,7 @@ export default function Services() {
                     {/* ACTIONS */}
                     <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <button
-                          type="button"
-                          onClick={() => console.log("View service:", service)}
-                          className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                          title="View"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
+                       
                         <button
                           type="button"
                           onClick={() => openEditModal(service)}

@@ -230,3 +230,30 @@ export const cardsData = [
     }
   }
 ];
+export const aboutDetails = {
+  slug: "about",
+  image: card1,
+  imageAlt: "GAMA Technology Equipment",
+  details: {
+    heading: "Welcome to GAMA Technology",
+    subheading:
+      "Building the future of electrical power solutions.",
+    description:
+      "GAMA Technology is building the future of electrical power solutions through innovative, reliable, and energy-efficient equipment designed to improve modern electrical systems.",
+    paragraphs: [
+      "GAMA Technology is committed to providing reliable electrical equipment and solutions for modern power systems. Our focus is on combining quality products, technical knowledge, and practical solutions to meet the needs of our customers.",
+      
+      "We work with trusted manufacturers and partners to provide electrical equipment that meets the technical and operational requirements of different projects and applications.",
+      
+      "Our approach is centered around reliability, technical expertise, customer support, and continuous improvement. We aim to build long-term relationships with our customers by providing solutions they can depend on."
+    ],
+    features: [
+      "Reliable electrical equipment",
+      "Professional technical expertise",
+      "Quality-focused solutions",
+      "Trusted manufacturing partners",
+      "Energy-efficient technologies",
+      "Long-term customer support"
+    ]
+  }
+};

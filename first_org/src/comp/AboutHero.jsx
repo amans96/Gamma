@@ -47,7 +47,7 @@ const AboutHero = () => {
 
             {/* See More Button */}
             <button
-              onClick={() => navigate("/about-details")}
+              onClick={() => navigate("/why-choose-us/about")}
               className="px-8 py-3 rounded-full bg-black text-white font-bold tracking-wide 
               hover:bg-gray-800 hover:scale-105 active:scale-95 
               transition-all duration-300 shadow-md"

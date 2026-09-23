@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search, ArrowDownAZ, ArrowUpAZ, X, PackageX, RefreshCw } from "lucide-react";
-
+import { useQuery } from "@tanstack/react-query";
 const API_URL =
   import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -9,9 +9,7 @@ const BACKEND_URL =
   "http://localhost:5000";
 
 export default function Product() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+
 
   // Search
   const [search, setSearch] = useState("");
@@ -23,30 +21,26 @@ export default function Product() {
   // GET PUBLIC PRODUCTS
   // =========================================================
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        setError("");
+  const fetchProducts = async () => {
+  const response = await fetch(`${API_URL}/products/public`);
 
-        const response = await fetch(`${API_URL}/products/public`);
-        const data = await response.json();
+  const data = await response.json();
 
-        if (!response.ok) {
-          throw new Error(data.message || "Failed to load products");
-        }
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to load products");
+  }
 
-        setProducts(data.products || []);
-      } catch (err) {
-        console.error("PUBLIC PRODUCTS ERROR:", err);
-        setError(err.message || "Failed to load products");
-      } finally {
-        setLoading(false);
-      }
-    };
+  return data.products || [];
+};
 
-    fetchProducts();
-  }, []);
+const {
+  data: products = [],
+  isLoading: loading,
+  error,
+} = useQuery({
+  queryKey: ["products"],
+  queryFn: fetchProducts,
+});
 
   // =========================================================
   // IMAGE URL HELPER
@@ -60,7 +54,7 @@ export default function Product() {
     if (image.startsWith("/")) {
       return `${BACKEND_URL}${image}`;
     }
-    return `${BACKEND_URL}image}`;
+    return `${BACKEND_URL}/${image}`;
   };
 
   // =========================================================

@@ -1,11 +1,14 @@
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Check } from "lucide-react";
-import { cardsData } from "../data/cardsData";
-
+import { cardsData,aboutDetails  } from "../data/cardsData";
+import footertemp from "./Footertemp";
 export default function WhyChooseUsDetail() {
-  const { slug } = useParams();
+const { slug } = useParams();
 
-  const card = cardsData.find((item) => item.slug === slug);
+const card =
+  slug === "about"
+    ? aboutDetails
+    : cardsData.find((item) => item.slug === slug);
 
   if (!card) {
     return (

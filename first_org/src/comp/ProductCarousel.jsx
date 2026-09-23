@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState,useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 // 1. Better URL parsing
@@ -17,9 +18,7 @@ const getBackendOrigin = () => {
 const BACKEND_URL = getBackendOrigin();
 
 export default function ProductCarousel() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+
 
   const [current, setCurrent] = useState(1);
   const [transition, setTransition] = useState(true);
@@ -35,31 +34,28 @@ export default function ProductCarousel() {
   // GET PUBLIC PRODUCTS
   // =========================================================
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        setError("");
+  const fetchProducts = async () => {
+  const response = await fetch(`${API_URL}/products/public`);
 
-        const response = await fetch(`${API_URL}/products/public`);
-        const data = await response.json();
+  const data = await response.json();
 
-        if (!response.ok) {
-          throw new Error(data.message || "Failed to load products");
-        }
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to load products");
+  }
 
-        console.log("PUBLIC PRODUCTS:", data);
-        setProducts(data.products || []);
-      } catch (err) {
-        console.error("PUBLIC PRODUCTS ERROR:", err);
-        setError(err.message || "Failed to load products");
-      } finally {
-        setLoading(false);
-      }
-    };
+  console.log("PUBLIC PRODUCTS:", data);
 
-    fetchProducts();
-  }, []);
+  return data.products || [];
+};
+
+const {
+  data: products = [],
+  isLoading: loading,
+  error,
+} = useQuery({
+  queryKey: ["products"],
+  queryFn: fetchProducts,
+});
 
   // =========================================================
   // HANDLE WINDOW RESIZE

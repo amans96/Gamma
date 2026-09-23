@@ -17,6 +17,7 @@ import Project from "./pages/Projects.jsx";
 import BlogPage from "./pages/BlogPage.jsx";
 import ServicesPage from "./pages/ServicesPage.jsx";
 import WhyChooseUsDetail from "./comp/WhyChooseUsDetail.jsx";
+
 // Auth
 import Login from "./pages/Login.jsx";
 
@@ -30,6 +31,22 @@ import Blog from "./pages/admin/Blog.jsx";
 import Partners from "./pages/admin/Partners.jsx";
 
 import ProtectedRoute from "./comp/ProtectedRoute.jsx";
+
+// React Query
+import {
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 30, // 30 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const router = createBrowserRouter([
   // =====================================
@@ -64,7 +81,6 @@ const router = createBrowserRouter([
         element: <Project />,
       },
 
-      // Services page
       {
         path: "services",
         element: <ServicesPage />,
@@ -74,11 +90,16 @@ const router = createBrowserRouter([
         path: "login",
         element: <Login />,
       },
-      {path: "blog", element: <BlogPage />},
+
       {
-  path: "/why-choose-us/:slug",
-  element: <WhyChooseUsDetail />,
-},
+        path: "blog",
+        element: <BlogPage />,
+      },
+
+      {
+        path: "why-choose-us/:slug",
+        element: <WhyChooseUsDetail />,
+      },
     ],
   },
 
@@ -135,5 +156,7 @@ const router = createBrowserRouter([
 ReactDOM.createRoot(
   document.getElementById("root")
 ).render(
-  <RouterProvider router={router} />
+  <QueryClientProvider client={queryClient}>
+    <RouterProvider router={router} />
+  </QueryClientProvider>
 );
