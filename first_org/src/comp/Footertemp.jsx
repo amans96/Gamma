@@ -116,9 +116,9 @@ const Footer = () => {
                   key={item.title}
                   className="hover:text-white cursor-pointer transition"
                 >
-                  <a href={item.link} className="hover:text-white transition">
-                    {item.title}
-                  </a>
+                <Link to={item.link} className="hover:text-white transition">
+  {item.title}
+</Link>
                 </li>
               ))}
             </ul>

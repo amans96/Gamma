@@ -1,4 +1,4 @@
-import { useState,useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -42,8 +42,6 @@ export default function ProductCarousel() {
   if (!response.ok) {
     throw new Error(data.message || "Failed to load products");
   }
-
-  console.log("PUBLIC PRODUCTS:", data);
 
   return data.products || [];
 };
@@ -119,10 +117,15 @@ const {
   // CAROUSEL PRODUCTS
   // =========================================================
 
-  const extendedProducts =
-    products.length > 1
-      ? [products[products.length - 1], ...products, products[0]]
-      : products;
+  const extendedProducts = useMemo(() => {
+    if (products.length <= 1) return products;
+
+    return [
+      products[products.length - 1],
+      ...products,
+      products[0],
+    ];
+  }, [products]);
 
   // =========================================================
   // NEXT & PREVIOUS
@@ -131,14 +134,12 @@ const {
   const next = () => {
     if (products.length <= 1 || isTransitioningRef.current) return;
     isTransitioningRef.current = true;
-    setTransition(true);
     setCurrent((prev) => prev + 1);
   };
 
   const prev = () => {
     if (products.length <= 1 || isTransitioningRef.current) return;
     isTransitioningRef.current = true;
-    setTransition(true);
     setCurrent((prev) => prev - 1);
   };
 
@@ -328,11 +329,18 @@ const {
                 }}
               >
                 {/* BACKGROUND IMAGE */}
-                <div
-                  className="absolute inset-0 bg-cover bg-center"
-                  style={{
-                    backgroundImage: `url("${getImageUrl(product.image)}")`,
-                  }}
+                <img
+                  src={getImageUrl(product.image)}
+                  alt={product.name || "Product"}
+                  width="1200"
+                  height="560"
+                  loading={
+                    index === current
+                      ? "eager"
+                      : "lazy"
+                  }
+                  decoding="async"
+                  className="absolute inset-0 h-full w-full object-cover object-center"
                 />
 
                 {/* GRADIENT */}
@@ -388,7 +396,6 @@ const {
                   type="button"
                   onClick={() => {
                     if (isTransitioningRef.current) return;
-                    setTransition(true);
                     setCurrent(index + 1);
                     isTransitioningRef.current = true;
                     setTimeout(() => {
