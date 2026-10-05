@@ -1,23 +1,30 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Play, Pause, Volume2, VolumeX, Maximize, Minimize } from "lucide-react";
+import {
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
+  Maximize,
+  Minimize,
+  ArrowDown,
+} from "lucide-react";
 
 const HeroPage = ({
   pageName,
+  subtitle,
   media,
   mediaType = "image",
 }) => {
   const containerRef = useRef(null);
   const videoRef = useRef(null);
-  
+
   const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(true); // Autoplay usually requires starting muted
+  const [isMuted, setIsMuted] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // ==========================================
-  // PLAY / PAUSE
-  // ==========================================
   const togglePlay = () => {
     if (!videoRef.current) return;
+
     if (videoRef.current.paused) {
       videoRef.current.play();
       setIsPlaying(true);
@@ -27,49 +34,52 @@ const HeroPage = ({
     }
   };
 
-  // ==========================================
-  // AUDIO (MUTE / UNMUTE)
-  // ==========================================
   const toggleMute = () => {
     if (!videoRef.current) return;
+
     videoRef.current.muted = !videoRef.current.muted;
     setIsMuted(videoRef.current.muted);
   };
 
-  // ==========================================
-  // FULLSCREEN
-  // ==========================================
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
 
     if (!document.fullscreenElement) {
       containerRef.current.requestFullscreen().catch((err) => {
-        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+        console.error("Fullscreen error:", err);
       });
     } else {
       document.exitFullscreen();
     }
   };
 
-  // Listen for 'Esc' key fullscreen exits to update the icon
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
     };
 
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener(
+      "fullscreenchange",
+      handleFullscreenChange
+    );
+
     return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener(
+        "fullscreenchange",
+        handleFullscreenChange
+      );
     };
   }, []);
 
   return (
-    <section 
-      ref={containerRef} 
-      className="relative flex min-h-[100dvh] w-full flex-col justify-center overflow-hidden bg-black"
+    <section
+      ref={containerRef}
+      className="group relative flex min-h-[100dvh] w-full items-center justify-center overflow-hidden bg-black"
     >
-      {/* Background Media */}
-      <div className="absolute inset-0 z-0">
+      {/* =========================
+          BACKGROUND MEDIA
+      ========================== */}
+      <div className="absolute inset-0 overflow-hidden">
         {mediaType === "video" ? (
           <video
             ref={videoRef}
@@ -79,76 +89,259 @@ const HeroPage = ({
             playsInline
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
-            className="h-full w-full object-cover"
+            className="
+              h-full
+              w-full
+              object-cover
+              scale-105
+              transition-transform
+              duration-[3000ms]
+              ease-out
+              group-hover:scale-110
+            "
           >
             <source src={media} type="video/mp4" />
-            Your browser does not support the video tag.
           </video>
         ) : (
           <img
             src={media}
             alt={pageName}
-            className="h-full w-full object-cover"
+            className="
+              h-full
+              w-full
+              object-cover
+              scale-105
+              transition-transform
+              duration-[3000ms]
+              ease-out
+              group-hover:scale-110
+            "
           />
         )}
 
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"></div>
+        {/* Cinematic gradient */}
+        <div
+          className="
+            absolute
+            inset-0
+            bg-gradient-to-b
+            from-black/20
+            via-black/35
+            to-black/80
+          "
+        />
+
+        {/* Side vignette */}
+        <div
+          className="
+            absolute
+            inset-0
+            bg-[radial-gradient(circle_at_center,transparent_20%,rgba(0,0,0,0.65)_100%)]
+          "
+        />
+
+        {/* Animated glow */}
+        <div
+          className="
+            absolute
+            left-1/2
+            top-1/2
+            h-[500px]
+            w-[500px]
+            -translate-x-1/2
+            -translate-y-1/2
+            rounded-full
+            bg-white/5
+            blur-[120px]
+            animate-pulse
+          "
+        />
       </div>
 
-      {/* Page Name */}
-      <div className="relative z-10 flex flex-1 items-center justify-center px-4">
-        <h1 className="text-center text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white drop-shadow-lg">
+      {/* =========================
+          HERO CONTENT
+      ========================== */}
+      <div className="relative z-10 mx-auto flex max-w-6xl flex-col items-center px-6 text-center">
+        
+        {/* Eyebrow */}
+    
+
+        {/* Main heading */}
+        <h1
+          className="
+            max-w-5xl
+            text-5xl
+            font-semibold
+            tracking-[-0.04em]
+            text-white
+            drop-shadow-2xl
+
+            sm:text-6xl
+            md:text-7xl
+            lg:text-8xl
+
+            animate-[fadeUp_1s_ease-out]
+          "
+        >
           {pageName}
         </h1>
+
+        {/* Subtitle */}
+        {subtitle && (
+          <p
+            className="
+              mt-6
+              max-w-2xl
+              text-base
+              leading-relaxed
+              text-white/65
+              sm:text-lg
+              md:text-xl
+              animate-[fadeUp_1.2s_ease-out]
+            "
+          >
+            {subtitle}
+          </p>
+        )}
+
+        {/* CTA */}
+        <div
+          className="
+            mt-10
+            flex
+            flex-col
+            gap-3
+            sm:flex-row
+            animate-[fadeUp_1.4s_ease-out]
+          "
+        >
+         
+
+         
+        </div>
       </div>
 
-      {/* Aesthetic Video Controls Pill */}
+      {/* =========================
+          VIDEO CONTROLS
+      ========================== */}
       {mediaType === "video" && (
-        <div className="absolute bottom-6 left-6 z-20 md:bottom-10 md:left-10 flex items-center gap-2 rounded-full border border-white/20 bg-black/40 p-2 backdrop-blur-md shadow-xl transition-all">
-          
-          {/* Play / Pause */}
+        <div
+          className="
+            absolute
+            bottom-6
+            left-6
+            z-20
+
+            flex
+            items-center
+            gap-1
+
+            rounded-full
+            border
+            border-white/15
+            bg-black/30
+            p-1.5
+
+            shadow-2xl
+            backdrop-blur-2xl
+
+            md:bottom-8
+            md:left-8
+
+            transition-all
+            duration-300
+            hover:border-white/30
+            hover:bg-black/50
+          "
+        >
           <button
             onClick={togglePlay}
             aria-label={isPlaying ? "Pause video" : "Play video"}
-            className="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-full text-white transition-colors duration-200 hover:bg-white/20"
+            className="
+              flex
+              h-10
+              w-10
+              items-center
+              justify-center
+              rounded-full
+              text-white
+              transition-all
+              duration-200
+              hover:bg-white/15
+              hover:scale-105
+            "
           >
             {isPlaying ? (
-              <Pause size={22} className="fill-current" />
+              <Pause size={19} className="fill-current" />
             ) : (
-              <Play size={22} className="ml-1 fill-current" />
+              <Play size={19} className="ml-0.5 fill-current" />
             )}
           </button>
 
-          {/* Audio Toggle */}
           <button
             onClick={toggleMute}
             aria-label={isMuted ? "Unmute video" : "Mute video"}
-            className="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-full text-white transition-colors duration-200 hover:bg-white/20"
+            className="
+              flex
+              h-10
+              w-10
+              items-center
+              justify-center
+              rounded-full
+              text-white
+              transition-all
+              duration-200
+              hover:bg-white/15
+              hover:scale-105
+            "
           >
             {isMuted ? (
-              <VolumeX size={24} strokeWidth={2} />
+              <VolumeX size={19} />
             ) : (
-              <Volume2 size={24} strokeWidth={2} />
+              <Volume2 size={19} />
             )}
           </button>
 
-          {/* Fullscreen Toggle */}
+          <div className="mx-1 h-5 w-px bg-white/15" />
+
           <button
             onClick={toggleFullscreen}
-            aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-            className="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-full text-white transition-colors duration-200 hover:bg-white/20"
+            aria-label={
+              isFullscreen
+                ? "Exit fullscreen"
+                : "Enter fullscreen"
+            }
+            className="
+              flex
+              h-10
+              w-10
+              items-center
+              justify-center
+              rounded-full
+              text-white
+              transition-all
+              duration-200
+              hover:bg-white/15
+              hover:scale-105
+            "
           >
             {isFullscreen ? (
-              <Minimize size={22} strokeWidth={2.5} />
+              <Minimize size={18} />
             ) : (
-              <Maximize size={22} strokeWidth={2.5} />
+              <Maximize size={18} />
             )}
           </button>
-
         </div>
       )}
 
+      {/* =========================
+          SCROLL INDICATOR
+      ========================== */}
+    
+       
+
+       
+      
     </section>
   );
 };

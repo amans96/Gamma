@@ -1,5 +1,11 @@
+
 import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Quote,
+  Star,
+} from "lucide-react";
 import testimonials from "../data/testimonialData.js";
 
 const Testimonial = () => {
@@ -7,17 +13,22 @@ const Testimonial = () => {
 
   const prevSlide = () => {
     setCurrent(
-      (prev) => (prev - 1 + testimonials.length) % testimonials.length
+      (prev) =>
+        (prev - 1 + testimonials.length) %
+        testimonials.length
     );
   };
 
   const nextSlide = () => {
-    setCurrent((prev) => (prev + 1) % testimonials.length);
+    setCurrent(
+      (prev) => (prev + 1) % testimonials.length
+    );
   };
 
   const getIndex = (offset) => {
     return (
-      (current + offset + testimonials.length) % testimonials.length
+      (current + offset + testimonials.length) %
+      testimonials.length
     );
   };
 
@@ -26,109 +37,243 @@ const Testimonial = () => {
   const rightCard = testimonials[getIndex(1)];
 
   return (
-    <section className="w-full py-20 bg-slate-100 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4">
-        <h2 className="text-center text-5xl font-bold text-slate-900 mb-16">
-          Testimonial
-        </h2>
+    <section className="w-full bg-slate-50 py-20 md:py-24 overflow-hidden">
+      <div className="mx-auto max-w-7xl px-4 md:px-8">
+        {/* Header */}
+        <div className="mb-12 text-center md:mb-14">
+          <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-blue-600">
+            Testimonials
+          </p>
 
-        <div className="relative flex items-center justify-center px-12 sm:px-16">
-          {/* Left Button - Transparent and positioned outside */}
+          <h2 className="text-4xl font-bold text-slate-900 md:text-5xl">
+            What Our Clients Say
+          </h2>
+
+          <p className="mx-auto mt-4 max-w-2xl text-base text-slate-600 md:text-lg">
+            See what our clients have to say about their
+            experience working with us.
+          </p>
+        </div>
+
+        {/* Testimonials */}
+        <div className="relative flex items-center justify-center">
+          {/* Previous */}
           <button
             onClick={prevSlide}
-            className="absolute left-0 z-20 bg-white/80 backdrop-blur-sm shadow-lg rounded-full p-3 hover:bg-white hover:scale-110 transition-all duration-300"
+            className="
+              absolute left-0 z-20
+              flex h-11 w-11 items-center justify-center
+              rounded-full
+              border border-slate-200
+              bg-white
+              shadow-sm
+              transition
+              hover:bg-slate-50
+              hover:shadow-md
+              md:h-12 md:w-12
+            "
             aria-label="Previous testimonial"
           >
-            <ChevronLeft size={28} className="text-slate-700" />
+            <ChevronLeft
+              size={22}
+              className="text-slate-700"
+            />
           </button>
 
-          <div className="flex items-center justify-center gap-4 md:gap-8">
-            {/* Left Card - Hidden on mobile */}
-            <div className="hidden md:block relative w-[220px] lg:w-[280px] h-[280px] lg:h-[320px] bg-orange-200 rounded-3xl p-6
-                            scale-90 opacity-60 blur-[1px]
-                            transition-all duration-500 shadow-lg">
-              <p className="text-slate-700 text-base lg:text-lg line-clamp-5">
+          <div className="flex items-center justify-center gap-5 px-10 md:gap-7 md:px-16">
+            {/* Left */}
+            <div
+              className="
+                hidden
+                h-[280px]
+                w-[240px]
+                rounded-2xl
+                border border-slate-200
+                bg-white
+                p-6
+                opacity-70
+                shadow-sm
+                transition-all
+                duration-300
+                md:block
+                lg:w-[270px]
+              "
+            >
+              <Quote
+                size={24}
+                className="mb-4 text-blue-200"
+              />
+
+              <p className="line-clamp-5 text-sm leading-relaxed text-slate-600 lg:text-base">
                 "{leftCard.quote}"
               </p>
 
-              <div className="absolute bottom-6 flex items-center gap-3">
+              <div className="mt-6 flex items-center gap-3">
                 <img
                   src={leftCard.image}
                   alt={leftCard.name}
-                  className="w-10 h-10 lg:w-14 lg:h-14 rounded-full object-cover"
-                />
-                <span className="font-medium text-sm lg:text-base">{leftCard.name}</span>
-              </div>
-            </div>
-
-            {/* Main Card - Responsive */}
-            <div className="relative w-[280px] sm:w-[340px] md:w-[380px] lg:w-[420px] 
-                            min-h-[320px] sm:min-h-[340px] lg:min-h-[380px]
-                            bg-[#003B7A] text-white
-                            rounded-3xl p-6 sm:p-8
-                            scale-100 z-10
-                            transition-all duration-500
-                            shadow-2xl">
-
-              <p className="text-xl sm:text-2xl lg:text-3xl leading-relaxed font-semibold">
-                "{centerCard.quote}"
-              </p>
-
-              <div className="absolute bottom-6 sm:bottom-8 flex items-center gap-3 sm:gap-4">
-                <img
-                  src={centerCard.image}
-                  alt={centerCard.name}
-                  className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-full object-cover border-2 border-white"
+                  className="h-10 w-10 rounded-full object-cover"
                 />
 
-                <span className="text-xl sm:text-2xl lg:text-3xl font-bold">
-                  {centerCard.name}
+                <span className="text-sm font-semibold text-slate-800">
+                  {leftCard.name}
                 </span>
               </div>
             </div>
 
-            {/* Right Card - Hidden on mobile */}
-            <div className="hidden md:block relative w-[220px] lg:w-[280px] h-[280px] lg:h-[320px]
-                            bg-orange-200 rounded-3xl p-6
-                            scale-90 opacity-60 blur-[1px]
-                            transition-all duration-500 shadow-lg">
-              <p className="text-slate-700 text-base lg:text-lg line-clamp-5">
+            {/* Center */}
+            <div
+              className="
+                relative
+                min-h-[330px]
+                w-full
+                max-w-[480px]
+                rounded-2xl
+                bg-[#003B7A]
+                p-7
+                text-white
+                shadow-xl
+                transition-all
+                duration-300
+                sm:p-9
+                md:min-h-[360px]
+                md:p-10
+              "
+            >
+              {/* Quote icon */}
+              <Quote
+                size={42}
+                className="mb-5 text-white/30"
+              />
+
+              {/* Stars */}
+              <div className="mb-5 flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    size={16}
+                    className="fill-orange-400 text-orange-400"
+                  />
+                ))}
+              </div>
+
+              {/* Quote */}
+              <p className="text-xl font-medium leading-relaxed sm:text-2xl">
+                "{centerCard.quote}"
+              </p>
+
+              {/* Person */}
+              <div className="absolute bottom-7 left-7 flex items-center gap-3 sm:bottom-9 sm:left-9">
+                <img
+                  src={centerCard.image}
+                  alt={centerCard.name}
+                  className="
+                    h-12
+                    w-12
+                    rounded-full
+                    border-2
+                    border-white/50
+                    object-cover
+                  "
+                />
+
+                <div>
+                  <p className="font-semibold">
+                    {centerCard.name}
+                  </p>
+
+                  <p className="text-sm text-white/60">
+                    Client
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right */}
+            <div
+              className="
+                hidden
+                h-[280px]
+                w-[240px]
+                rounded-2xl
+                border border-slate-200
+                bg-white
+                p-6
+                opacity-70
+                shadow-sm
+                transition-all
+                duration-300
+                md:block
+                lg:w-[270px]
+              "
+            >
+              <Quote
+                size={24}
+                className="mb-4 text-blue-200"
+              />
+
+              <p className="line-clamp-5 text-sm leading-relaxed text-slate-600 lg:text-base">
                 "{rightCard.quote}"
               </p>
 
-              <div className="absolute bottom-6 flex items-center gap-3">
+              <div className="mt-6 flex items-center gap-3">
                 <img
                   src={rightCard.image}
                   alt={rightCard.name}
-                  className="w-10 h-10 lg:w-14 lg:h-14 rounded-full object-cover"
+                  className="h-10 w-10 rounded-full object-cover"
                 />
-                <span className="font-medium text-sm lg:text-base">{rightCard.name}</span>
+
+                <span className="text-sm font-semibold text-slate-800">
+                  {rightCard.name}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Right Button - Transparent and positioned outside */}
+          {/* Next */}
           <button
             onClick={nextSlide}
-            className="absolute right-0 z-20 bg-white/80 backdrop-blur-sm shadow-lg rounded-full p-3 hover:bg-white hover:scale-110 transition-all duration-300"
+            className="
+              absolute right-0 z-20
+              flex h-11 w-11 items-center justify-center
+              rounded-full
+              border border-slate-200
+              bg-white
+              shadow-sm
+              transition
+              hover:bg-slate-50
+              hover:shadow-md
+              md:h-12 md:w-12
+            "
             aria-label="Next testimonial"
           >
-            <ChevronRight size={28} className="text-slate-700" />
+            <ChevronRight
+              size={22}
+              className="text-slate-700"
+            />
           </button>
         </div>
 
         {/* Dots */}
-        <div className="flex justify-center gap-3 mt-12">
+        <div className="mt-10 flex justify-center gap-2">
           {testimonials.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrent(index)}
-              className={`w-3 h-3 rounded-full transition ${
-                current === index
-                  ? "bg-blue-600 w-8"
-                  : "bg-gray-300"
+              className={`
+                h-2
+                rounded-full
+                transition-all
+                duration-300
+                ${
+                  current === index
+                    ? "w-7 bg-blue-600"
+                    : "w-2 bg-slate-300 hover:bg-slate-400"
+                }
+              `}
+              aria-label={`Go to testimonial ${
+                index + 1
               }`}
-              aria-label={`Go to testimonial ${index + 1}`}
             />
           ))}
         </div>
@@ -138,3 +283,4 @@ const Testimonial = () => {
 };
 
 export default Testimonial;
+
