@@ -200,7 +200,8 @@ function Card({ card, delay }) {
 
             {/* Explore hint */}
             <div className="mt-5 flex items-center gap-2 text-sm font-medium text-white/80">
-              <span>Hover to explore</span>
+          
+          
 
               <ArrowRight
                 size={16}

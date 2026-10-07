@@ -16,6 +16,7 @@ const createAdmin = async () => {
       },
     });
 
+
     console.log("Admin created:", admin.email);
   } catch (error) {
     console.error("Error creating admin:", error);
