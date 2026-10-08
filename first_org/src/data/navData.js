@@ -64,21 +64,18 @@ export const bottomNav = [
     title: "Resources",
     dropdown: [
       {
-        title: "Documentation",
-        path: "/resources/docs",
+        title: "Careers",
+        path: "/resources/careers",
       },
       {
         title: "Case Studies",
-        path: "/resources/case-studies",
+        path: "/resources/case-stdies",
       },
       {
         title: "Blog",
         path: "/blog",
       },
-      {
-        title: "FAQs",
-        path: "/resources/faqs",
-      },
+    
     ],
   },
 ];

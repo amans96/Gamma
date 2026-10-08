@@ -37,15 +37,15 @@ export const footerLinks = {
   services: [
     {
       title: "Engineering",
-      link: "/services",
+      link: "/services#engineering",
     },
     {
       title: "Installation",
-      link: "/services",
+      link: "/services#installation",
     },
     {
       title: "Maintenance",
-      link: "/services",
+      link: "/services#maintenance",
     },
   ],
 
