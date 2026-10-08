@@ -1,12 +1,78 @@
-
 import { useEffect, useState } from "react";
 import Footertemp from "../comp/Footertemp.jsx";
 
 const API_URL =
   import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
 const BACKEND_URL =
   import.meta.env.VITE_API_URL?.replace("/api", "") ||
   "http://localhost:5000";
+
+// ==========================================
+// CACHE SETTINGS
+// ==========================================
+
+const BLOG_CACHE_KEY = "gama_blog_posts_cache";
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// ==========================================
+// CACHE HELPERS
+// ==========================================
+
+const getCachedBlogPosts = () => {
+  try {
+    const cached = localStorage.getItem(BLOG_CACHE_KEY);
+
+    if (!cached) {
+      return null;
+    }
+
+    const parsedCache = JSON.parse(cached);
+
+    if (
+      !parsedCache ||
+      !Array.isArray(parsedCache.blogPosts) ||
+      !parsedCache.timestamp
+    ) {
+      localStorage.removeItem(BLOG_CACHE_KEY);
+      return null;
+    }
+
+    const cacheAge = Date.now() - parsedCache.timestamp;
+
+    // Cache expired
+    if (cacheAge > CACHE_DURATION) {
+      localStorage.removeItem(BLOG_CACHE_KEY);
+      return null;
+    }
+
+    return parsedCache.blogPosts;
+  } catch (error) {
+    console.error("BLOG CACHE READ ERROR:", error);
+
+    localStorage.removeItem(BLOG_CACHE_KEY);
+
+    return null;
+  }
+};
+
+const cacheBlogPosts = (blogPosts) => {
+  try {
+    localStorage.setItem(
+      BLOG_CACHE_KEY,
+      JSON.stringify({
+        blogPosts,
+        timestamp: Date.now(),
+      })
+    );
+  } catch (error) {
+    console.error("BLOG CACHE WRITE ERROR:", error);
+  }
+};
+
+// ==========================================
+// COMPONENT
+// ==========================================
 
 export default function Blog() {
   const [expandedPost, setExpandedPost] = useState(null);
@@ -14,31 +80,148 @@ export default function Blog() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // ==========================================
+  // FETCH BLOG POSTS
+  // ==========================================
+
   useEffect(() => {
+    let isMounted = true;
+
     const fetchBlogPosts = async () => {
       try {
-        setLoading(true);
         setError("");
 
-        const response = await fetch(`${API_URL}/blog-posts/public`);
+        // ==========================================
+        // CHECK CACHE FIRST
+        // ==========================================
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch blog posts");
+        const cachedPosts = getCachedBlogPosts();
+
+        if (cachedPosts) {
+          console.log("BLOG: Using cached data");
+
+          if (isMounted) {
+            setBlogPosts(cachedPosts);
+            setLoading(false);
+          }
+
+          return;
         }
 
-        const data = await response.json();
+        // ==========================================
+        // NO CACHE - FETCH FROM API
+        // ==========================================
 
-        setBlogPosts(data.blogPosts || []);
+        console.log("BLOG: Fetching from API");
+
+        if (isMounted) {
+          setLoading(true);
+        }
+
+       const response = await fetch(
+  `${API_URL}/blog-posts/public`
+);
+
+const data = await response.json();
+
+if (!response.ok) {
+  throw new Error(
+    data.message || `Failed to fetch blog posts (${response.status})`
+  );
+}
+
+      
+
+        const fetchedPosts = data.blogPosts || [];
+
+        // ==========================================
+        // SAVE TO CACHE
+        // ==========================================
+
+        cacheBlogPosts(fetchedPosts);
+
+        if (isMounted) {
+          setBlogPosts(fetchedPosts);
+        }
       } catch (error) {
         console.error("FETCH BLOG POSTS ERROR:", error);
-        setError("Failed to load blog posts.");
+
+        // ==========================================
+        // FALLBACK TO OLD CACHE
+        // ==========================================
+
+        try {
+          const oldCache = localStorage.getItem(
+            BLOG_CACHE_KEY
+          );
+
+          if (oldCache) {
+            const parsedCache = JSON.parse(oldCache);
+
+            if (
+              parsedCache &&
+              Array.isArray(parsedCache.blogPosts)
+            ) {
+              console.log(
+                "BLOG: API failed, using old cached data"
+              );
+
+              if (isMounted) {
+                setBlogPosts(parsedCache.blogPosts);
+                setError("");
+              }
+
+              return;
+            }
+          }
+        } catch (cacheError) {
+          console.error(
+            "BLOG FALLBACK CACHE ERROR:",
+            cacheError
+          );
+        }
+
+        if (isMounted) {
+          setError("Failed to load blog posts.");
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchBlogPosts();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  // ==========================================
+  // IMAGE URL
+  // ==========================================
+
+  const getImageUrl = (image) => {
+    if (!image) return "";
+
+    if (
+      image.startsWith("http://") ||
+      image.startsWith("https://")
+    ) {
+      return image;
+    }
+
+    if (image.startsWith("/")) {
+      return `${BACKEND_URL}${image}`;
+    }
+
+    return `${BACKEND_URL}/${image}`;
+  };
+
+  // ==========================================
+  // UI
+  // ==========================================
 
   return (
     <>
@@ -78,8 +261,8 @@ export default function Blog() {
                 </h2>
 
                 <p className="mt-4 max-w-2xl mx-auto text-gray-600">
-                  Discover the latest news, insights, projects, and updates
-                  from our company.
+                  Discover the latest news, insights, projects, and
+                  updates from our company.
                 </p>
               </div>
 
@@ -102,11 +285,7 @@ export default function Blog() {
                       {/* Image */}
                       {post.featuredImage ? (
                         <img
-                          src={
-                            post.featuredImage.startsWith("http")
-                              ? post.featuredImage
-                              : `${BACKEND_URL}${post.featuredImage}`
-                          }
+                          src={getImageUrl(post.featuredImage)}
                           alt={post.title}
                           className="w-full h-56 object-cover"
                         />
@@ -185,4 +364,3 @@ export default function Blog() {
     </>
   );
 }
-

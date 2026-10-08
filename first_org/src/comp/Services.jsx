@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -9,10 +8,23 @@ import {
   ChevronUp,
 } from "lucide-react";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
 const BACKEND_URL =
   import.meta.env.VITE_API_URL?.replace("/api", "") ||
   "http://localhost:5000";
+
+// ==========================================
+// CACHE SETTINGS
+// ==========================================
+
+const SERVICES_CACHE_KEY = "gama_services_cache";
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// ==========================================
+// ANIMATIONS
+// ==========================================
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -39,6 +51,65 @@ const cardVariants = {
   },
 };
 
+// ==========================================
+// SERVICES CACHE HELPERS
+// ==========================================
+
+const getCachedServices = () => {
+  try {
+    const cached = localStorage.getItem(SERVICES_CACHE_KEY);
+
+    if (!cached) {
+      return null;
+    }
+
+    const parsedCache = JSON.parse(cached);
+
+    if (
+      !parsedCache ||
+      !Array.isArray(parsedCache.services) ||
+      !parsedCache.timestamp
+    ) {
+      localStorage.removeItem(SERVICES_CACHE_KEY);
+      return null;
+    }
+
+    const cacheAge = Date.now() - parsedCache.timestamp;
+
+    // Cache expired
+    if (cacheAge > CACHE_DURATION) {
+      localStorage.removeItem(SERVICES_CACHE_KEY);
+      return null;
+    }
+
+    return parsedCache.services;
+  } catch (error) {
+    console.error("SERVICES CACHE READ ERROR:", error);
+
+    localStorage.removeItem(SERVICES_CACHE_KEY);
+
+    return null;
+  }
+};
+
+const cacheServices = (services) => {
+  try {
+    localStorage.setItem(
+      SERVICES_CACHE_KEY,
+      JSON.stringify({
+        services,
+        timestamp: Date.now(),
+      })
+    );
+  } catch (error) {
+    console.error("SERVICES CACHE WRITE ERROR:", error);
+  }
+};
+
+// ==========================================
+// COMPONENT
+// ==========================================
+
 export default function Services() {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,12 +123,41 @@ export default function Services() {
   // ==========================================
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchServices = async () => {
       try {
-        setLoading(true);
         setError("");
 
+        // ==========================================
+        // CHECK CACHE FIRST
+        // ==========================================
+
+        const cachedServices = getCachedServices();
+
+        if (cachedServices) {
+          console.log("SERVICES: Using cached data");
+
+          if (isMounted) {
+            setServices(cachedServices);
+            setLoading(false);
+          }
+
+          return;
+        }
+
+        // ==========================================
+        // NO CACHE - FETCH FROM API
+        // ==========================================
+
+        console.log("SERVICES: Fetching from API");
+
+        if (isMounted) {
+          setLoading(true);
+        }
+
         const response = await fetch(`${API_URL}/services/public`);
+
         const data = await response.json();
 
         if (!response.ok) {
@@ -66,37 +166,94 @@ export default function Services() {
           );
         }
 
-        setServices(data.services || []);
+        const fetchedServices = data.services || [];
+
+        // ==========================================
+        // SAVE TO CACHE
+        // ==========================================
+
+        cacheServices(fetchedServices);
+
+        if (isMounted) {
+          setServices(fetchedServices);
+        }
       } catch (err) {
         console.error("SERVICES ERROR:", err);
-        setError(err.message || "Failed to load services");
+
+        // ==========================================
+        // FALLBACK TO OLD CACHE
+        // ==========================================
+
+        try {
+          const oldCache = localStorage.getItem(
+            SERVICES_CACHE_KEY
+          );
+
+          if (oldCache) {
+            const parsedCache = JSON.parse(oldCache);
+
+            if (
+              parsedCache &&
+              Array.isArray(parsedCache.services)
+            ) {
+              console.log(
+                "SERVICES: API failed, using old cached data"
+              );
+
+              if (isMounted) {
+                setServices(parsedCache.services);
+                setError("");
+              }
+
+              return;
+            }
+          }
+        } catch (cacheError) {
+          console.error(
+            "SERVICES FALLBACK CACHE ERROR:",
+            cacheError
+          );
+        }
+
+        if (isMounted) {
+          setError(
+            err.message || "Failed to load services"
+          );
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchServices();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // ==========================================
   // IMAGE URL
   // ==========================================
-const getImageUrl = (image) => {
-  if (!image) return "";
 
-  if (
-    image.startsWith("http://") ||
-    image.startsWith("https://")
-  ) {
-    return image;
-  }
+  const getImageUrl = (image) => {
+    if (!image) return "";
 
-  if (image.startsWith("/")) {
-    return `${BACKEND_URL}${image}`;
-  }
+    if (
+      image.startsWith("http://") ||
+      image.startsWith("https://")
+    ) {
+      return image;
+    }
 
-  return `${BACKEND_URL}/${image}`;
-};
+    if (image.startsWith("/")) {
+      return `${BACKEND_URL}${image}`;
+    }
+
+    return `${BACKEND_URL}/${image}`;
+  };
 
   // ==========================================
   // SEE MORE / SEE LESS
@@ -185,6 +342,7 @@ const getImageUrl = (image) => {
       <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
 
         {/* HEADER */}
+
         <div className="mb-12 max-w-2xl">
           <motion.p
             initial={{ opacity: 0, y: 10 }}
@@ -215,6 +373,7 @@ const getImageUrl = (image) => {
         </div>
 
         {/* SERVICES */}
+
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -232,6 +391,7 @@ const getImageUrl = (image) => {
                 className="group flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
               >
                 {/* IMAGE */}
+
                 <div className="relative h-52 shrink-0 overflow-hidden bg-gray-100 sm:h-56">
                   {service.image ? (
                     <img
@@ -239,7 +399,8 @@ const getImageUrl = (image) => {
                       alt={service.name}
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                       onError={(e) => {
-                        e.currentTarget.style.display = "none";
+                        e.currentTarget.style.display =
+                          "none";
                       }}
                     />
                   ) : (
@@ -250,14 +411,17 @@ const getImageUrl = (image) => {
                 </div>
 
                 {/* CONTENT */}
+
                 <div className="flex flex-1 flex-col p-6">
 
                   {/* SERVICE NAME */}
+
                   <h3 className="text-xl font-semibold text-gray-900 transition-colors duration-300 group-hover:text-indigo-600">
                     {service.name}
                   </h3>
 
                   {/* DESCRIPTION */}
+
                   {service.description && (
                     <div className="mt-3">
                       <p
@@ -271,6 +435,7 @@ const getImageUrl = (image) => {
                       </p>
 
                       {/* SEE MORE / SEE LESS */}
+
                       {service.description.length > 250 && (
                         <button
                           type="button"
@@ -303,4 +468,3 @@ const getImageUrl = (image) => {
     </section>
   );
 }
-

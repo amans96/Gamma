@@ -10,7 +10,10 @@ const Faq = () => {
   };
 
   return (
-<section className="w-full py-20 text-white bg-gradient-to-b from-transparent via-transparent via-5 0% to-[#030619]">
+    <section
+      id="faqs"
+      className="w-full py-20 text-white bg-gradient-to-b from-transparent via-transparent via-50% to-[#030619]"
+    >
       <div className="max-w-4xl mx-auto px-4">
 
         <h2 className="text-4xl md:text-5xl font-bold text-center text-black mb-4">

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-// Replace these with your actual team member image paths
+
 import staff1 from "../assets/pricipal-1.jpg";
 import staff2 from "../assets/principal-2.jpg";
 import staff3 from "../assets/teach-3.jpg";
@@ -34,42 +34,39 @@ const teamMembers = [
 
 export default function LeadershipTeam() {
   const [activeIndex, setActiveIndex] = useState(null);
-  
-  // The custom colors you provided
+
   const colors = ["#2563EB", "#F97316", "#16A34A", "#DC2626"];
 
   const handleMouseEnter = (index) => {
-    // Only trigger hover on devices with a mouse (ignores touchscreens)
     if (window.matchMedia("(hover: hover)").matches) {
       setActiveIndex(index);
     }
   };
 
   const handleMouseLeave = () => {
-    // Only trigger hover leave on devices with a mouse
     if (window.matchMedia("(hover: hover)").matches) {
       setActiveIndex(null);
     }
   };
 
   const handleClick = (index) => {
-    // Toggle functionality for mobile click/tap
     setActiveIndex(activeIndex === index ? null : index);
   };
 
   return (
-    <section className="w-full max-w-5xl mx-auto my-16 md:my-24 px-6 font-montserrat">
-      
-      {/* HEADING CONTAINER */}
+    <section
+      id="team"
+      className="w-full max-w-5xl mx-auto my-16 md:my-24 px-6 font-montserrat"
+    >
+      {/* HEADING */}
       <div className="text-center mb-12">
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-[Georgia] font-semibold text-black  animate-[fadeIn_1s_ease-out_forwards]">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-[Georgia] font-semibold text-black animate-[fadeIn_1s_ease-out_forwards]">
           Our Staff
         </h1>
       </div>
 
       <div className="flex flex-col gap-2">
         {teamMembers.map((person, index) => {
-          // Get the color for the current item
           const activeColor = colors[index % colors.length];
           const isActive = activeIndex === index;
 
@@ -84,7 +81,9 @@ export default function LeadershipTeam() {
               {/* TEXT CONTAINER */}
               <div className="w-full md:w-2/3 z-10">
                 <h3
-                  style={{ color: isActive ? activeColor : "#111827" }}
+                  style={{
+                    color: isActive ? activeColor : "#111827",
+                  }}
                   className={`text-xl sm:text-2xl md:text-3xl font-bold transition-all duration-300 ${
                     isActive ? "md:translate-x-2" : ""
                   }`}
@@ -96,7 +95,7 @@ export default function LeadershipTeam() {
                   {person.role}
                 </p>
 
-                {/* DESCRIPTION - Expands when active */}
+                {/* DESCRIPTION */}
                 <div
                   className={`grid transition-all duration-500 ease-in-out ${
                     isActive
@@ -110,10 +109,12 @@ export default function LeadershipTeam() {
                 </div>
               </div>
 
-              {/* IMAGE CONTAINER - Appears when active */}
+              {/* IMAGE */}
               <div className="flex items-center justify-center w-full md:w-auto mt-6 md:mt-0 overflow-hidden pointer-events-none">
                 <div
-                  style={{ borderColor: isActive ? activeColor : "transparent" }}
+                  style={{
+                    borderColor: isActive ? activeColor : "transparent",
+                  }}
                   className={`w-20 h-20 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 transition-all duration-700 ease-out ${
                     isActive
                       ? "opacity-100 scale-100 translate-y-0 md:translate-x-0 shadow-lg"

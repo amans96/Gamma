@@ -3,11 +3,11 @@ export const footerLinks = {
   company: [
     {
       title: "About GAMA",
-      link: "/about",
+      link: "/about#about",
     },
     {
       title: "Our Team",
-      link: "/team",
+      link: "/about#team",
     },
     {
       title: "Mission & Vision",
@@ -37,15 +37,15 @@ export const footerLinks = {
   services: [
     {
       title: "Engineering",
-      link: "/services#engineering",
+      link: "/services",
     },
     {
       title: "Installation",
-      link: "/services#installation",
+      link: "/services",
     },
     {
       title: "Maintenance",
-      link: "/services#maintenance",
+      link: "/services",
     },
   ],
 
@@ -56,12 +56,9 @@ export const footerLinks = {
     },
     {
       title: "FAQs",
-      link: "/faq",
+      link: "/#faqs",
     },
-    {
-      title: "Support",
-      link: "/support",
-    },
+ 
   ],
 };
 
