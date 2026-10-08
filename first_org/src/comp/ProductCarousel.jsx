@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { ThreeDot } from "react-loading-indicators";
 
 const API_URL =
   import.meta.env.VITE_API_URL || "http://localhost:5000/api";
@@ -243,7 +244,7 @@ export default function ProductCarousel() {
   };
 
   // =========================================================
-  // PREMIUM LOADING STATE
+  // POWER SYSTEM LOADING STATE
   // =========================================================
 
   if (loading) {
@@ -251,176 +252,233 @@ export default function ProductCarousel() {
       <section className="w-full overflow-hidden py-12 sm:py-16 md:py-20">
         <div className="mx-auto max-w-[1405px] px-4 sm:px-5">
 
-          {/* Header */}
+          {/* HEADER */}
           <div className="mb-8 flex items-end justify-between sm:mb-10">
-
             <div>
-              {/* Tiny eyebrow */}
               <div className="mb-3 flex items-center gap-2">
                 <span className="relative flex h-2.5 w-2.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75" />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-orange-500" />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
                 </span>
 
                 <span className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-400">
-                  Discover
+                  Powering Up
                 </span>
               </div>
 
-              {/* Animated title */}
-              <div className="relative h-10 w-56 overflow-hidden sm:h-12 sm:w-72 md:h-14 md:w-80">
-                <div className="absolute inset-0 animate-pulse rounded-xl bg-gray-200" />
-
-                {/* Moving shine */}
-                <div
-                  className="
-                    absolute
-                    inset-y-0
-                    -left-full
-                    w-1/2
-                    skew-x-[-20deg]
-                    bg-gradient-to-r
-                    from-transparent
-                    via-white/80
-                    to-transparent
-                    animate-[shimmer_1.6s_infinite]
-                  "
-                />
-              </div>
+              <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl md:text-5xl">
+                Our Products
+              </h2>
             </div>
 
             {/* Fake navigation controls */}
             <div className="hidden gap-3 sm:flex">
-              <div className="h-12 w-12 animate-pulse rounded-full bg-gray-200 sm:h-14 sm:w-14" />
-              <div className="h-12 w-12 animate-pulse rounded-full bg-gray-200 sm:h-14 sm:w-14" />
+              <div className="h-12 w-12 rounded-full border border-gray-200 bg-gray-50 sm:h-14 sm:w-14" />
+
+              <div className="h-12 w-12 rounded-full border border-gray-200 bg-gray-50 sm:h-14 sm:w-14" />
             </div>
           </div>
 
-          {/* Product skeleton */}
+          {/* POWER PANEL */}
           <div
             className="
               relative
               overflow-hidden
               rounded-[20px]
-              bg-gray-200
+              bg-[#111111]
               sm:rounded-[30px]
             "
             style={{ height: `${cardHeight}px` }}
           >
 
-            {/* Base gradient */}
-            <div className="absolute inset-0 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-300" />
-
-            {/* Huge ambient glow */}
+            {/* Industrial grid */}
             <div
               className="
                 absolute
-                -right-32
-                -top-32
-                h-[500px]
-                w-[500px]
+                inset-0
+                opacity-[0.06]
+                [background-image:linear-gradient(#fff_1px,transparent_1px),linear-gradient(90deg,#fff_1px,transparent_1px)]
+                [background-size:40px_40px]
+              "
+            />
+
+            {/* Ambient glow */}
+            <div
+              className="
+                absolute
+                left-1/2
+                top-1/2
+                h-[350px]
+                w-[350px]
+                -translate-x-1/2
+                -translate-y-1/2
                 rounded-full
-                bg-white/60
+                bg-green-500/10
                 blur-[100px]
-                animate-pulse
               "
             />
 
-            {/* Shimmer sweep */}
-            <div
-              className="
-                absolute
-                inset-y-0
-                -left-[60%]
-                w-[45%]
-                skew-x-[-20deg]
-                bg-gradient-to-r
-                from-transparent
-                via-white/60
-                to-transparent
-                animate-[productShimmer_2s_ease-in-out_infinite]
-              "
-            />
+            {/* ELECTRICAL CIRCUIT */}
+            <div className="absolute inset-0 flex items-center justify-center">
 
-            {/* Fake content */}
-            <div className="absolute inset-0 flex flex-col justify-center px-6 sm:px-8 md:px-12 lg:px-16">
+              {/* Circuit line */}
+              <div className="relative h-px w-[70%] bg-white/10">
 
-              {/* Badge */}
-              <div className="mb-6 h-6 w-28 animate-pulse rounded-full bg-gray-300/80" />
+                {/* Left node */}
+                <div className="absolute left-0 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border border-white/20 bg-[#111111]" />
 
-              {/* Product title */}
-              <div className="space-y-3">
-                <div className="h-10 w-[70%] animate-pulse rounded-lg bg-gray-300 sm:h-12 md:h-16" />
+                {/* Right node */}
+                <div className="absolute right-0 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border border-white/20 bg-[#111111]" />
 
-                <div className="h-10 w-[48%] animate-pulse rounded-lg bg-gray-300 sm:h-12 md:h-16" />
+                {/* Electrical pulse */}
+                <div
+                  className="
+                    absolute
+                    left-0
+                    top-1/2
+                    h-1
+                    w-20
+                    -translate-y-1/2
+                    rounded-full
+                    bg-green-400
+                    shadow-[0_0_18px_rgba(50,205,50,0.9)]
+                    animate-[electricity_1.8s_linear_infinite]
+                  "
+                />
               </div>
 
-              {/* Description */}
-              <div className="mt-6 max-w-xl space-y-3">
-                <div className="h-3 w-full animate-pulse rounded-full bg-gray-300/80" />
-                <div className="h-3 w-[85%] animate-pulse rounded-full bg-gray-300/80" />
-                <div className="h-3 w-[65%] animate-pulse rounded-full bg-gray-300/80" />
-              </div>
+              {/* CENTER POWER UNIT */}
+              <div
+                className="
+                  absolute
+                  flex
+                  h-28
+                  w-24
+                  items-center
+                  justify-center
+                  rounded-2xl
+                  border
+                  border-white/10
+                  bg-[#181818]
+                  shadow-2xl
+                  sm:h-36
+                  sm:w-32
+                "
+              >
 
-              {/* Fake CTA */}
-              <div className="mt-8 h-11 w-32 animate-pulse rounded-full bg-gray-300/90" />
+                {/* Loader */}
+                <ThreeDot
+                  variant="bounce"
+                  color="#32cd32"
+                  size="medium"
+                  text=""
+                  textColor=""
+                />
+
+                {/* Status indicators */}
+                <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(50,205,50,0.8)]" />
+
+                  <span className="h-1.5 w-1.5 rounded-full bg-white/10" />
+
+                  <span className="h-1.5 w-1.5 rounded-full bg-white/10" />
+                </div>
+              </div>
             </div>
 
-            {/* Bottom loading indicator */}
-            <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-2">
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.3s]" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.15s]" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400" />
+            {/* SYSTEM STATUS */}
+            <div className="absolute left-6 top-6 sm:left-8 sm:top-8 md:left-12 md:top-10">
+
+              <div className="mb-3 flex items-center gap-2">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
+
+                <span className="text-[10px] font-medium uppercase tracking-[0.25em] text-white/40">
+                  System Status
+                </span>
+              </div>
+
+              <p className="text-sm font-medium text-white/70">
+                Initializing power systems
+              </p>
+            </div>
+
+            {/* TECHNICAL INFORMATION */}
+            <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between sm:bottom-8 sm:left-8 sm:right-8 md:bottom-10 md:left-12 md:right-12">
+
+              <div>
+                <p className="mb-1 text-[10px] uppercase tracking-[0.25em] text-white/30">
+                  Voltage
+                </p>
+
+                <p className="font-mono text-sm text-white/70">
+                  220 V
+                </p>
+              </div>
+
+              <div className="hidden sm:block">
+                <p className="mb-1 text-right text-[10px] uppercase tracking-[0.25em] text-white/30">
+                  Supply
+                </p>
+
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />
+
+                  <span className="text-sm text-white/60">
+                    Connecting...
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Mobile dots */}
+          {/* MOBILE DOTS */}
           <div className="mt-6 flex justify-center gap-2 sm:mt-8">
-            <div className="h-2 w-8 animate-pulse rounded-full bg-gray-300" />
-            <div className="h-2 w-2 animate-pulse rounded-full bg-gray-200" />
-            <div className="h-2 w-2 animate-pulse rounded-full bg-gray-200" />
+            <span className="h-1.5 w-8 rounded-full bg-green-500" />
+
+            <span className="h-1.5 w-1.5 rounded-full bg-gray-200" />
+
+            <span className="h-1.5 w-1.5 rounded-full bg-gray-200" />
           </div>
 
-          {/* Loading text */}
+          {/* LOADING MESSAGE */}
           <div className="mt-5 flex items-center justify-center gap-2 text-sm text-gray-400">
-            <span>Curating our collection</span>
+            <span>Connecting to our power systems</span>
 
             <span className="flex gap-0.5">
               <span className="animate-bounce [animation-delay:-0.3s]">
                 .
               </span>
+
               <span className="animate-bounce [animation-delay:-0.15s]">
                 .
               </span>
-              <span className="animate-bounce">.</span>
+
+              <span className="animate-bounce">
+                .
+              </span>
             </span>
           </div>
         </div>
 
-        {/* Custom animation keyframes */}
+        {/* ELECTRICAL ANIMATION */}
         <style>{`
-          @keyframes shimmer {
+          @keyframes electricity {
             0% {
-              transform: translateX(0) skewX(-20deg);
-            }
-            100% {
-              transform: translateX(400%) skewX(-20deg);
-            }
-          }
-
-          @keyframes productShimmer {
-            0% {
-              transform: translateX(0) skewX(-20deg);
+              transform: translateX(-20px);
               opacity: 0;
             }
-            20% {
+
+            15% {
               opacity: 1;
             }
-            80% {
+
+            85% {
               opacity: 1;
             }
+
             100% {
-              transform: translateX(400%) skewX(-20deg);
+              transform: translateX(700px);
               opacity: 0;
             }
           }
@@ -437,6 +495,7 @@ export default function ProductCarousel() {
     return (
       <section className="w-full py-12 sm:py-16 md:py-20">
         <div className="mx-auto max-w-[1405px] px-4 sm:px-5">
+
           <h2 className="mb-8 text-3xl font-bold sm:text-4xl md:text-5xl">
             Our Products
           </h2>
@@ -449,6 +508,7 @@ export default function ProductCarousel() {
               {error.message || "Failed to load products."}
             </p>
           </div>
+
         </div>
       </section>
     );
@@ -462,6 +522,7 @@ export default function ProductCarousel() {
     return (
       <section className="w-full py-12 sm:py-16 md:py-20">
         <div className="mx-auto max-w-[1405px] px-4 sm:px-5">
+
           <h2 className="mb-8 text-3xl font-bold sm:text-4xl md:text-5xl">
             Our Products
           </h2>
@@ -474,6 +535,7 @@ export default function ProductCarousel() {
               No products available at the moment.
             </p>
           </div>
+
         </div>
       </section>
     );
@@ -500,7 +562,9 @@ export default function ProductCarousel() {
             </h2>
           </div>
 
+          {/* NAVIGATION */}
           <div className="flex w-full justify-end gap-3 sm:w-auto sm:gap-4">
+
             <button
               type="button"
               onClick={prev}
@@ -554,6 +618,7 @@ export default function ProductCarousel() {
             >
               <ChevronRight size={windowWidth < 640 ? 20 : 24} />
             </button>
+
           </div>
         </div>
 
@@ -588,6 +653,7 @@ export default function ProductCarousel() {
                   height: `${cardHeight}px`,
                 }}
               >
+
                 {/* IMAGE */}
                 <img
                   src={getImageUrl(product.image)}
@@ -665,6 +731,7 @@ export default function ProductCarousel() {
                   >
                     {product.description}
                   </p>
+
                 </div>
               </Link>
             ))}
