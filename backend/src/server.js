@@ -1,3 +1,4 @@
+
 import express from "express";
 import path from "path";
 import cors from "cors";
@@ -23,32 +24,50 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "https://firstorg.vercel.app",
-];
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests without an Origin header,
-      // such as Postman and server-to-server requests.
-      if (!origin) {
-        return callback(null, true);
-      }
+  // Add your exact production frontend origin here if different.
+  // Example: "https://your-project.vercel.app",
+].map((origin) => origin.trim().replace(/\/$/, ""));
 
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests without an Origin header, such as Postman.
+    if (!origin) {
+      return callback(null, true);
+    }
 
-      console.error("CORS blocked origin:", origin);
+    const normalizedOrigin = origin.trim().replace(/\/$/, "");
 
-      return callback(
-        new Error(`Not allowed by CORS: ${origin}`)
-      );
-    },
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
+    if (allowedOrigins.includes(normalizedOrigin)) {
+      return callback(null, true);
+    }
+
+    console.error("CORS blocked origin:", origin);
+
+    return callback(
+      new Error(`Not allowed by CORS: ${origin}`)
+    );
+  },
+
+  methods: [
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "OPTIONS",
+  ],
+
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+  ],
+
+  credentials: true,
+};
+
+// Register CORS before routes so preflight requests are handled.
+app.use(cors(corsOptions));
 
 // ==========================================
 // GLOBAL MIDDLEWARE
@@ -57,7 +76,7 @@ app.use(
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// Log incoming requests for debugging.
+// Log requests and response status codes.
 app.use((req, res, next) => {
   console.log(`➡️ ${req.method} ${req.originalUrl}`);
 
@@ -115,7 +134,6 @@ app.use("/api", (req, res) => {
 
 // ==========================================
 // GLOBAL ERROR HANDLER
-// Must be registered before app.listen()
 // ==========================================
 
 app.use((err, req, res, next) => {
@@ -127,7 +145,6 @@ app.use((err, req, res, next) => {
     return next(err);
   }
 
-  // Return a clear CORS error when applicable.
   if (err.message?.startsWith("Not allowed by CORS:")) {
     return res.status(403).json({
       success: false,
