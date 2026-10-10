@@ -15,16 +15,21 @@ dotenv.config();
 
 const app = express();
 
+// ==========================================
+// CORS CONFIGURATION
+// ==========================================
+
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
-   "https://firstorg.vercel.app",
+  "https://firstorg.vercel.app",
 ];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow Postman / requests without an origin
+      // Allow requests without an Origin header,
+      // such as Postman and server-to-server requests.
       if (!origin) {
         return callback(null, true);
       }
@@ -33,56 +38,116 @@ app.use(
         return callback(null, true);
       }
 
-      return callback(new Error(`Not allowed by CORS: ${origin}`));
+      console.error("CORS blocked origin:", origin);
+
+      return callback(
+        new Error(`Not allowed by CORS: ${origin}`)
+      );
     },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   })
 );
 
-app.use(express.json());
+// ==========================================
+// GLOBAL MIDDLEWARE
+// ==========================================
 
-// Debug every request
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true }));
+
+// Log incoming requests for debugging.
 app.use((req, res, next) => {
-  console.log("➡️", req.method, req.url);
+  console.log(`➡️ ${req.method} ${req.originalUrl}`);
+
+  res.on("finish", () => {
+    console.log(
+      `⬅️ ${req.method} ${req.originalUrl} - ${res.statusCode}`
+    );
+  });
+
   next();
 });
 
-// API routes
+// ==========================================
+// API ROUTES
+// ==========================================
+
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/blog-posts", blogPostRoutes);
 app.use("/api/partners", partnerRoutes);
 app.use("/api/admin/dashboard", dashboardRoutes);
+app.use("/api/images", imageUploadRoutes);
 
-// Images/uploads
+// ==========================================
+// STATIC UPLOADS
+// ==========================================
+
 app.use(
   "/uploads",
   express.static(path.join(process.cwd(), "uploads"))
 );
 
-app.use("/api/images", imageUploadRoutes);
+// ==========================================
+// HEALTH CHECK
+// ==========================================
 
-// API health check
 app.get("/api", (req, res) => {
-  res.json({
+  res.status(200).json({
+    success: true,
     message: "Company website API is running",
   });
 });
 
-const PORT = process.env.PORT || 5000;
+// ==========================================
+// API NOT FOUND HANDLER
+// ==========================================
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.use("/api", (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: `API route not found: ${req.method} ${req.originalUrl}`,
+  });
 });
 
-// Global error handler
+// ==========================================
+// GLOBAL ERROR HANDLER
+// Must be registered before app.listen()
+// ==========================================
+
 app.use((err, req, res, next) => {
   console.error("========== GLOBAL SERVER ERROR ==========");
   console.error(err);
   console.error("=========================================");
 
-  res.status(500).json({
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  // Return a clear CORS error when applicable.
+  if (err.message?.startsWith("Not allowed by CORS:")) {
+    return res.status(403).json({
+      success: false,
+      message: err.message,
+    });
+  }
+
+  res.status(err.status || 500).json({
+    success: false,
     message: err.message || "Internal server error",
   });
 });
 
+// ==========================================
+// START SERVER
+// ==========================================
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`🌐 API health check: http://localhost:${PORT}/api`);
+});

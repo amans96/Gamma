@@ -19,6 +19,36 @@ import {
 
 const router = express.Router();
 
+const measureUpload = (uploadMiddleware, uploadType) => {
+  return (req, res, next) => {
+    const startedAt = Date.now();
+
+    console.log(`[${uploadType}] Upload started`);
+
+    uploadMiddleware(req, res, (error) => {
+      const seconds = ((Date.now() - startedAt) / 1000).toFixed(2);
+
+      if (error) {
+        console.error(
+          `[${uploadType}] Failed after ${seconds}s:`,
+          error.message
+        );
+        return next(error);
+      }
+
+      console.log(
+        `[${uploadType}] Middleware completed in ${seconds}s`
+      );
+
+      console.log(`[${uploadType}] File size:`, req.file?.size);
+      console.log(`[${uploadType}] Cloudinary URL:`, req.file?.path);
+
+      next();
+    });
+  };
+};
+
+
 // ==========================================
 // UPLOAD PRODUCT ROUTE
 // ==========================================
@@ -26,7 +56,7 @@ router.post(
   "/product",
   protect,
   adminOnly,
-  uploadProduct.single("image"),
+measureUpload(uploadProduct.single("image"), "PRODUCT"),
   uploadProductImage
 );
 
