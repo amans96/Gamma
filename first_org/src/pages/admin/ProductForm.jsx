@@ -130,38 +130,56 @@ export default function ProductModal({ isOpen, product, onClose, onSuccess }) {
   // UPLOAD IMAGE TO CLOUDINARY VIA BACKEND
   // ==========================================
 
-  const uploadImage = async () => {
-    if (!selectedImage) return formData.image;
+const uploadImage = async () => {
+  if (!selectedImage) return formData.image;
 
-    const token = localStorage.getItem("token");
-    const uploadData = new FormData();
-    uploadData.append("image", selectedImage); // Must match 'upload.single("image")' in your backend
+  const token = localStorage.getItem("token");
+  const uploadData = new FormData();
+  uploadData.append("image", selectedImage);
 
-    setUploading(true);
+  setUploading(true);
 
+  try {
+    const response = await fetch(`${API_URL}/images/product`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: uploadData,
+    });
+
+    const responseText = await response.text();
+
+    let data;
     try {
-      // FIX: Changed endpoint to match your actual backend route: router.post("/product", ...)
-      const response = await fetch(`${API_URL}/images/product`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          // DO NOT set Content-Type here, the browser handles the boundary for FormData automatically
-        },
-        body: uploadData,
+      data = JSON.parse(responseText);
+    } catch {
+      data = { message: responseText || "The server returned an invalid response." };
+    }
+
+    if (!response.ok) {
+      console.error("IMAGE UPLOAD FAILED:", {
+        status: response.status,
+        response: data,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to upload image to Cloudinary");
-      }
-
-      // Backend returns { image: "https://..." }
-      return data.image || data.imageUrl; 
-    } finally {
-      setUploading(false);
+      throw new Error(
+        data.message || `Image upload failed with status ${response.status}`
+      );
     }
-  };
+
+    if (!data.image) {
+      throw new Error("The server uploaded the image but did not return its URL.");
+    }
+
+    return data.image;
+  } catch (error) {
+    console.error("IMAGE UPLOAD ERROR:", error);
+    throw error;
+  } finally {
+    setUploading(false);
+  }
+};
 
   // ==========================================
   // SUBMIT
