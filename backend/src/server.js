@@ -24,49 +24,23 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "https://firstorg.vercel.app",
-
-  // Add your exact production frontend origin here if different.
-  // Example: "https://your-project.vercel.app",
-].map((origin) => origin.trim().replace(/\/$/, ""));
+];
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests without an Origin header, such as Postman.
-    if (!origin) {
-      return callback(null, true);
-    }
-
-    const normalizedOrigin = origin.trim().replace(/\/$/, "");
-
-    if (allowedOrigins.includes(normalizedOrigin)) {
+    if (!origin || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
 
     console.error("CORS blocked origin:", origin);
 
-    return callback(
-      new Error(`Not allowed by CORS: ${origin}`)
-    );
+    return callback(new Error(`Not allowed by CORS: ${origin}`));
   },
-
-  methods: [
-    "GET",
-    "POST",
-    "PUT",
-    "PATCH",
-    "DELETE",
-    "OPTIONS",
-  ],
-
-  allowedHeaders: [
-    "Content-Type",
-    "Authorization",
-  ],
-
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 };
 
-// Register CORS before routes so preflight requests are handled.
 app.use(cors(corsOptions));
 
 // ==========================================
@@ -76,7 +50,6 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// Log requests and response status codes.
 app.use((req, res, next) => {
   console.log(`➡️ ${req.method} ${req.originalUrl}`);
 
@@ -99,7 +72,14 @@ app.use("/api/services", serviceRoutes);
 app.use("/api/blog-posts", blogPostRoutes);
 app.use("/api/partners", partnerRoutes);
 app.use("/api/admin/dashboard", dashboardRoutes);
-app.use("/api/images", imageUploadRoutes);
+
+// Log every request that reaches the image router mount.
+app.use("/api/images", (req, res, next) => {
+  console.log("🖼️ IMAGE ROUTER REACHED:", req.method, req.path);
+  next();
+}, imageUploadRoutes);
+
+console.log("✅ Image routes registered at /api/images");
 
 // ==========================================
 // STATIC UPLOADS
@@ -122,7 +102,7 @@ app.get("/api", (req, res) => {
 });
 
 // ==========================================
-// API NOT FOUND HANDLER
+// API NOT FOUND
 // ==========================================
 
 app.use("/api", (req, res) => {

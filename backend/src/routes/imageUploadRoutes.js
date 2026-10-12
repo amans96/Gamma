@@ -3,86 +3,40 @@ import express from "express";
 import {
   uploadProductImage,
   uploadPartnerImage,
-  uploadBlogImage // (Optional: If you use it)
+  uploadBlogImage,
+  getStoredImage,
 } from "../controllers/imageUploadController.js";
 
 import {
   uploadProduct,
   uploadPartner,
-  uploadBlog // (Optional: If you use it)
+  uploadBlog,
 } from "../middleware/uploadMiddleware.js";
 
-import {
-  protect,
-  adminOnly,
-} from "../middleware/authMiddleware.js";
+import { protect, adminOnly } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-const measureUpload = (uploadMiddleware, uploadType) => {
-  return (req, res, next) => {
-    const startedAt = Date.now();
+// Public image retrieval.
+router.get("/:id", getStoredImage);
 
-    console.log(`[${uploadType}] Upload started`);
-
-    uploadMiddleware(req, res, (error) => {
-      const seconds = ((Date.now() - startedAt) / 1000).toFixed(2);
-
-      if (error) {
-        console.error(
-          `[${uploadType}] Failed after ${seconds}s:`,
-          error.message
-        );
-        return next(error);
-      }
-
-      console.log(
-        `[${uploadType}] Middleware completed in ${seconds}s`
-      );
-
-      console.log(`[${uploadType}] File size:`, req.file?.size);
-      console.log(`[${uploadType}] Cloudinary URL:`, req.file?.path);
-
-      next();
-    });
-  };
-};
-
-
-// ==========================================
-// UPLOAD PRODUCT ROUTE
-// ==========================================
+// Admin image uploads.
 router.post(
   "/product",
   protect,
   adminOnly,
-measureUpload(uploadProduct.single("image"), "PRODUCT"),
+  uploadProduct.single("image"),
   uploadProductImage
 );
 
-// ==========================================
-// UPLOAD PARTNER ROUTE
-// ==========================================
 router.post(
   "/partner",
   protect,
   adminOnly,
-  (req, res, next) => {
-    console.log("===== PARTNER UPLOAD ROUTE REACHED =====");
-    next();
-  },
   uploadPartner.single("image"),
-  (req, res, next) => {
-    console.log("===== MULTER FINISHED =====");
-    console.log("REQ.FILE:", req.file);
-    next();
-  },
   uploadPartnerImage
 );
 
-// ==========================================
-// UPLOAD BLOG ROUTE (Optional)
-// ==========================================
 router.post(
   "/blog",
   protect,
