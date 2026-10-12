@@ -1,16 +1,74 @@
-import React, { useEffect, useMemo, useState } from "react";
+
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import PartnerForm from "./PartnerForm";
 
 const API_URL =
   import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
+const BACKEND_URL =
+  import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, "") ||
+  "http://localhost:5000";
+
+// ==========================================
+// CACHE CONFIGURATION
+// ==========================================
+
+const PARTNER_CACHE_KEY = "gama_admin_partners_cache";
+const PARTNER_CACHE_DURATION = 5 * 60 * 1000;
+
+const readPartnerCache = () => {
+  try {
+    const cached = sessionStorage.getItem(PARTNER_CACHE_KEY);
+    if (!cached) return null;
+
+    const parsed = JSON.parse(cached);
+
+    if (
+      !Array.isArray(parsed.partners) ||
+      typeof parsed.cachedAt !== "number"
+    ) {
+      sessionStorage.removeItem(PARTNER_CACHE_KEY);
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const writePartnerCache = (partners) => {
+  try {
+    sessionStorage.setItem(
+      PARTNER_CACHE_KEY,
+      JSON.stringify({
+        partners,
+        cachedAt: Date.now(),
+      })
+    );
+  } catch (error) {
+    console.warn("Could not cache partners:", error);
+  }
+};
+
+const clearPartnerCache = () => {
+  try {
+    sessionStorage.removeItem(PARTNER_CACHE_KEY);
+  } catch {
+    // Ignore storage errors.
+  }
+};
+
 export default function Partners() {
-  const [partners, setPartners] = useState([]);
+  const [initialCache] = useState(() => readPartnerCache());
+
+  const [partners, setPartners] = useState(
+    () => initialCache?.partners ?? []
+  );
 
   const [searchQuery, setSearchQuery] = useState("");
-
-  const [loading, setLoading] = useState(true);
-
+  const [loading, setLoading] = useState(!initialCache);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
   // Add/Edit modal
@@ -21,6 +79,8 @@ export default function Partners() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [partnerToDelete, setPartnerToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  const hadInitialCache = Boolean(initialCache);
 
   const getToken = () => localStorage.getItem("token");
 
@@ -35,48 +95,96 @@ export default function Partners() {
       return image;
     }
 
-    return `${BACKEND_URL}${image}`;
+    return `${BACKEND_URL}${image.startsWith("/") ? "" : "/"}${image}`;
   };
 
   // ==========================================
-  // GET ALL PARTNERS
+  // UPDATE STATE AND CACHE TOGETHER
   // ==========================================
 
-  const fetchPartners = async () => {
-    try {
-      setLoading(true);
+  const updatePartners = useCallback((updater) => {
+    setPartners((current) => {
+      const next =
+        typeof updater === "function" ? updater(current) : updater;
+
+      writePartnerCache(next);
+      return next;
+    });
+  }, []);
+
+  // ==========================================
+  // FETCH PARTNERS
+  // ==========================================
+
+  const fetchPartners = useCallback(
+    async ({ background = false } = {}) => {
+      if (background) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
       setError("");
 
-      const token = getToken();
+      try {
+        const token = getToken();
 
-      if (!token) {
-        throw new Error("You are not authenticated.");
+        if (!token) {
+          clearPartnerCache();
+          updatePartners([]);
+          throw new Error("You are not authenticated.");
+        }
+
+        const response = await fetch(`${API_URL}/partners`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            clearPartnerCache();
+            updatePartners([]);
+          }
+
+          throw new Error(data.message || "Failed to fetch partners");
+        }
+
+        updatePartners(data.partners || []);
+      } catch (err) {
+        console.error("FETCH PARTNERS ERROR:", err);
+
+        if (hadInitialCache && background) {
+          setError("Could not refresh partners. Showing saved data.");
+        } else {
+          setError(err.message || "Failed to load partners.");
+        }
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
+    },
+    [hadInitialCache, updatePartners]
+  );
 
-      const response = await fetch(`${API_URL}/partners`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to fetch partners");
-      }
-
-      setPartners(data.partners || []);
-    } catch (error) {
-      console.error("FETCH PARTNERS ERROR:", error);
-      setError(error.message || "Failed to load partners.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ==========================================
+  // INITIAL LOAD / CACHE EXPIRATION
+  // ==========================================
 
   useEffect(() => {
-    fetchPartners();
-  }, []);
+    const cacheIsFresh =
+      initialCache &&
+      Date.now() - initialCache.cachedAt < PARTNER_CACHE_DURATION;
+
+    if (!cacheIsFresh) {
+      fetchPartners({
+        background: Boolean(initialCache),
+      });
+    }
+  }, [initialCache, fetchPartners]);
 
   // ==========================================
   // SEARCH
@@ -85,17 +193,15 @@ export default function Partners() {
   const filteredPartners = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
 
-    if (!query) {
-      return partners;
-    }
+    if (!query) return partners;
 
-    return partners.filter((partner) => {
-      return (
-        partner.name?.toLowerCase().includes(query) ||
-        partner.description?.toLowerCase().includes(query) ||
-        partner.website?.toLowerCase().includes(query)
-      );
-    });
+    return partners.filter((partner) =>
+      [
+        partner.name,
+        partner.description,
+        partner.website,
+      ].some((value) => value?.toLowerCase().includes(query))
+    );
   }, [partners, searchQuery]);
 
   // ==========================================
@@ -121,19 +227,29 @@ export default function Partners() {
   // ==========================================
 
   const handleFormSuccess = (savedPartner) => {
-    setPartners((currentPartners) => {
-      const exists = currentPartners.some(
+    if (!savedPartner?.id) {
+      setFormModalOpen(false);
+      setSelectedPartner(null);
+      fetchPartners({ background: true });
+      return;
+    }
+
+    updatePartners((current) => {
+      const exists = current.some(
         (partner) => partner.id === savedPartner.id
       );
 
       if (exists) {
-        return currentPartners.map((partner) =>
+        return current.map((partner) =>
           partner.id === savedPartner.id ? savedPartner : partner
         );
       }
 
-      return [savedPartner, ...currentPartners];
+      return [savedPartner, ...current];
     });
+
+    setFormModalOpen(false);
+    setSelectedPartner(null);
   };
 
   // ==========================================
@@ -174,20 +290,22 @@ export default function Partners() {
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          clearPartnerCache();
+        }
+
         throw new Error(data.message || "Failed to delete partner");
       }
 
-      setPartners((currentPartners) =>
-        currentPartners.filter(
-          (partner) => partner.id !== partnerToDelete.id
-        )
+      updatePartners((current) =>
+        current.filter((partner) => partner.id !== partnerToDelete.id)
       );
 
       setDeleteModalOpen(false);
       setPartnerToDelete(null);
-    } catch (error) {
-      console.error("DELETE PARTNER ERROR:", error);
-      setError(error.message || "Failed to delete partner.");
+    } catch (err) {
+      console.error("DELETE PARTNER ERROR:", err);
+      setError(err.message || "Failed to delete partner.");
     } finally {
       setDeleting(false);
     }
@@ -205,34 +323,35 @@ export default function Partners() {
         throw new Error("You are not authenticated.");
       }
 
-      const response = await fetch(
-        `${API_URL}/partners/${partner.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            isActive: !partner.isActive,
-          }),
-        }
-      );
+      const response = await fetch(`${API_URL}/partners/${partner.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          isActive: !partner.isActive,
+        }),
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          clearPartnerCache();
+        }
+
         throw new Error(data.message || "Failed to update partner");
       }
 
-      setPartners((currentPartners) =>
-        currentPartners.map((item) =>
+      updatePartners((current) =>
+        current.map((item) =>
           item.id === partner.id ? data.partner : item
         )
       );
-    } catch (error) {
-      console.error("TOGGLE PARTNER ERROR:", error);
-      setError(error.message || "Failed to update partner.");
+    } catch (err) {
+      console.error("TOGGLE PARTNER ERROR:", err);
+      setError(err.message || "Failed to update partner.");
     }
   };
 
@@ -240,11 +359,10 @@ export default function Partners() {
   // STATUS BADGE
   // ==========================================
 
-  const getStatusBadge = (isActive) => {
-    return isActive
+  const getStatusBadge = (isActive) =>
+    isActive
       ? "bg-green-100 text-green-800 border-green-200"
       : "bg-gray-100 text-gray-800 border-gray-200";
-  };
 
   // ==========================================
   // DATE FORMAT
@@ -252,15 +370,12 @@ export default function Partners() {
 
   const formatDate = (date) => {
     if (!date) return "-";
-
     return new Date(date).toLocaleDateString();
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-      {/* ==========================================
-          PAGE HEADER
-      ========================================== */}
+      {/* PAGE HEADER */}
 
       <div className="sm:flex sm:items-center sm:justify-between mb-8">
         <div>
@@ -274,11 +389,22 @@ export default function Partners() {
           </p>
         </div>
 
-        <div className="mt-4 sm:mt-0">
+        <div className="mt-4 flex flex-wrap gap-3 sm:mt-0">
+          <button
+            type="button"
+            onClick={() =>
+              fetchPartners({ background: partners.length > 0 })
+            }
+            disabled={loading || refreshing}
+            className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </button>
+
           <button
             type="button"
             onClick={handleAddPartner}
-            className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto transition-colors"
+            className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
           >
             <svg
               className="-ml-1 mr-2 h-5 w-5"
@@ -293,21 +419,24 @@ export default function Partners() {
                 d="M12 4v16m8-8H4"
               />
             </svg>
-
             Add Partner
           </button>
         </div>
       </div>
 
-      {/* ==========================================
-          ERROR
-      ========================================== */}
+      {refreshing && (
+        <p className="mb-3 text-sm text-gray-500">
+          Updating partners...
+        </p>
+      )}
+
+      {/* ERROR */}
 
       {error && (
         <div className="mb-6 flex items-center justify-between rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <span>{error}</span>
-
           <button
+            type="button"
             onClick={() => setError("")}
             className="ml-4 font-medium text-red-700 hover:text-red-900"
           >
@@ -316,9 +445,7 @@ export default function Partners() {
         </div>
       )}
 
-      {/* ==========================================
-          SEARCH
-      ========================================== */}
+      {/* SEARCH */}
 
       <div className="mb-6 max-w-md">
         <label htmlFor="search" className="sr-only">
@@ -354,15 +481,12 @@ export default function Partners() {
         </div>
       </div>
 
-      {/* ==========================================
-          TABLE
-      ========================================== */}
+      {/* PARTNERS TABLE */}
 
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         {loading ? (
           <div className="py-16 text-center">
             <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-indigo-600" />
-
             <p className="mt-4 text-sm text-gray-500">
               Loading partners...
             </p>
@@ -378,28 +502,24 @@ export default function Partners() {
                   >
                     Partner
                   </th>
-
                   <th
                     scope="col"
                     className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
                   >
                     Website
                   </th>
-
                   <th
                     scope="col"
                     className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
                   >
                     Status
                   </th>
-
                   <th
                     scope="col"
                     className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
                   >
                     Date Added
                   </th>
-
                   <th
                     scope="col"
                     className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500"
@@ -415,7 +535,8 @@ export default function Partners() {
                     key={partner.id}
                     className="transition-colors hover:bg-gray-50"
                   >
-                    {/* Partner */}
+                    {/* PARTNER */}
+
                     <td className="whitespace-nowrap px-6 py-4">
                       <div className="flex items-center">
                         <div className="h-10 w-10 flex-shrink-0">
@@ -424,6 +545,9 @@ export default function Partners() {
                               className="h-10 w-10 rounded-full border border-gray-200 object-cover"
                               src={getImageUrl(partner.logo)}
                               alt={`${partner.name} logo`}
+                              onError={(e) => {
+                                e.currentTarget.style.visibility = "hidden";
+                              }}
                             />
                           ) : (
                             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold text-gray-500">
@@ -446,7 +570,8 @@ export default function Partners() {
                       </div>
                     </td>
 
-                    {/* Website */}
+                    {/* WEBSITE */}
+
                     <td className="whitespace-nowrap px-6 py-4">
                       {partner.website ? (
                         <a
@@ -456,7 +581,6 @@ export default function Partners() {
                           className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-900"
                         >
                           {partner.website.replace(/^https?:\/\//, "")}
-
                           <svg
                             className="h-3 w-3"
                             fill="none"
@@ -478,7 +602,8 @@ export default function Partners() {
                       )}
                     </td>
 
-                    {/* Status */}
+                    {/* STATUS */}
+
                     <td className="whitespace-nowrap px-6 py-4">
                       <button
                         type="button"
@@ -492,15 +617,16 @@ export default function Partners() {
                       </button>
                     </td>
 
-                    {/* Date */}
+                    {/* DATE */}
+
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                       {formatDate(partner.createdAt)}
                     </td>
 
-                    {/* Actions */}
+                    {/* ACTIONS */}
+
                     <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                       <div className="flex justify-end space-x-3">
-                        {/* View */}
                         {partner.website && (
                           <a
                             href={partner.website}
@@ -531,7 +657,6 @@ export default function Partners() {
                           </a>
                         )}
 
-                        {/* Edit */}
                         <button
                           type="button"
                           onClick={() => handleEditPartner(partner)}
@@ -553,7 +678,6 @@ export default function Partners() {
                           </svg>
                         </button>
 
-                        {/* Delete */}
                         <button
                           type="button"
                           onClick={() => confirmDelete(partner)}
@@ -582,7 +706,8 @@ export default function Partners() {
             </table>
           </div>
         ) : (
-          /* Empty state */
+          /* EMPTY STATE */
+
           <div className="px-4 py-16 text-center">
             <svg
               className="mx-auto h-12 w-12 text-gray-300"
@@ -628,7 +753,6 @@ export default function Partners() {
                       d="M12 4v16m8-8H4"
                     />
                   </svg>
-
                   Add Partner
                 </button>
               </div>
@@ -637,9 +761,7 @@ export default function Partners() {
         )}
       </div>
 
-      {/* ==========================================
-          ADD / EDIT MODAL
-      ========================================== */}
+      {/* ADD / EDIT MODAL */}
 
       <PartnerForm
         isOpen={formModalOpen}
@@ -651,9 +773,7 @@ export default function Partners() {
         partner={selectedPartner}
       />
 
-      {/* ==========================================
-          DELETE CONFIRMATION MODAL
-      ========================================== */}
+      {/* DELETE CONFIRMATION MODAL */}
 
       {deleteModalOpen && (
         <div
@@ -662,7 +782,8 @@ export default function Partners() {
           aria-modal="true"
         >
           <div className="flex min-h-screen items-center justify-center px-4">
-            {/* Overlay */}
+            {/* OVERLAY */}
+
             <div
               className="fixed inset-0 bg-gray-500/75"
               onClick={() => {
@@ -673,7 +794,8 @@ export default function Partners() {
               }}
             />
 
-            {/* Modal */}
+            {/* MODAL */}
+
             <div className="relative z-10 w-full max-w-lg rounded-lg bg-white p-6 text-left shadow-xl">
               <div className="sm:flex sm:items-start">
                 <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
