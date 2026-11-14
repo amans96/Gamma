@@ -1,56 +1,64 @@
-import { useEffect, useState } from "react";
-import { ChevronDown, Menu, X } from "lucide-react";
-import { topNav, bottomNav } from "../data/navData";
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, NavLink, useLocation } from "react-router-dom";
+import { ChevronDown, Menu, X, ArrowUpRight } from "lucide-react";
+import { bottomNav } from "../data/navData";
+import { isAuthenticated } from "../utils/auth";
 import logo from "../assets/image.png";
 
 export default function Nav() {
-  const colors = ["#2563EB", "#F97316", "#16A34A", "#DC2626"];
-
-  const [colorIndex, setColorIndex] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
+  const [desktopDropdown, setDesktopDropdown] = useState(null);
+  const [loggedIn, setLoggedIn] = useState(false);
+  const location = useLocation();
+  const navRef = useRef(null);
 
+  // Sync auth state
   useEffect(() => {
-    const timer = setInterval(() => {
-      setColorIndex((prev) => (prev + 1) % colors.length);
-    }, 1200);
+    setLoggedIn(isAuthenticated());
+  }, [location.pathname]);
 
-    return () => clearInterval(timer);
-  }, []);
+  // Close menus on route navigation
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+    setOpenDropdown(null);
+    setDesktopDropdown(null);
+  }, [location.pathname]);
 
-  // Click outside handler
+  // Click outside and escape key handling
   useEffect(() => {
     const handleClickOutside = (e) => {
-      const navElement = document.getElementById("main-nav");
-      const mobileMenu = document.getElementById("mobile-menu");
-
-      if (isMobileMenuOpen && navElement && mobileMenu) {
-        const isClickInsideNav = navElement.contains(e.target);
-        const isClickInsideMobileMenu = mobileMenu.contains(e.target);
-
-        if (!isClickInsideNav && !isClickInsideMobileMenu) {
-          setIsMobileMenuOpen(false);
-          setOpenDropdown(null);
-        }
+      if (navRef.current && !navRef.current.contains(e.target)) {
+        setIsMobileMenuOpen(false);
+        setDesktopDropdown(null);
       }
     };
 
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setIsMobileMenuOpen(false);
+        setDesktopDropdown(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+
     if (isMobileMenuOpen) {
-      document.addEventListener("click", handleClickOutside);
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "unset";
     }
 
     return () => {
-      document.removeEventListener("click", handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "unset";
     };
   }, [isMobileMenuOpen]);
 
-  const toggleDropdown = (index) => {
-    setOpenDropdown(openDropdown === index ? null : index);
+  const toggleMobileDropdown = (index) => {
+    setOpenDropdown((prev) => (prev === index ? null : index));
   };
 
   const closeMobileMenu = () => {
@@ -58,176 +66,258 @@ export default function Nav() {
     setOpenDropdown(null);
   };
 
+  const toSentenceCase = (str) => {
+    if (!str) return "";
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  };
+
+  // Calm UI: four-sided tint on active, no single-side accent rule or shadow
+  const navLinkClasses = ({ isActive }) =>
+    `px-3 py-1.5 text-sm font-medium rounded-xl transition-colors ${
+      isActive
+        ? "text-foreground bg-muted"
+        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+    }`;
+
   return (
-    <nav id="main-nav" className="relative z-[100] w-full px-4 sm:px-6 md:px-12 py-4">
-      {/* Glassmorphism Background */}
-      <div className="absolute inset-0 bg-slate-900/95 border-b border-blue-500/30 shadow-lg"></div>
-
-      <div className="relative flex justify-between items-center">
-        {/* LEFT - Logo */}
-        <div className="flex items-center gap-3 sm:gap-5">
-          <div
-            className="w-12 h-12 sm:w-16 sm:h-16 p-[4px] rounded-md transition-all duration-700 flex items-center justify-center flex-shrink-0 shadow-lg"
-            style={{
-              backgroundColor: colors[colorIndex],
-            }}
-          >
-            <div className="w-full h-full bg-white rounded-sm flex items-center justify-center">
-              <img
-                src={logo}
-                alt="Company Logo"
-                className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
-              />
-            </div>
-          </div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-wide text-white drop-shadow-lg">
-            Gamma <span className="text-[#e78c16]">SOLUTIONS</span>
-          </h1>
-        </div>
-
-        {/* RIGHT - Desktop Navigation */}
-        <div className="hidden lg:flex flex-col items-end gap-3">
-          {/* Top Navigation */}
-          <div className="flex gap-6 xl:gap-10">
-            {topNav.map((item, i) => (
-              <Link
-                key={item.title}
-                to={item.link}
-                className="font-semibold transition-colors duration-300 text-white/90 hover:text-white drop-shadow"
-                style={{ color: "#ffffff" }}
-                onMouseEnter={(e) =>
-                  (e.target.style.color = colors[i % colors.length])
-                }
-                onMouseLeave={(e) =>
-                  (e.target.style.color = "#ffffff")
-                }
-              >
-                {item.title}
-              </Link>
-            ))}
-          </div>
-
-          {/* Bottom Navigation */}
-          <div className="flex gap-6 xl:gap-12">
-            {bottomNav.map((menu, index) => (
-              <div key={menu.title} className="relative group">
-                <button className="flex items-center gap-1 font-semibold text-white/90 hover:text-white drop-shadow whitespace-nowrap transition-colors">
-                  {menu.title}
-                  <ChevronDown
-                    size={18}
-                    className="group-hover:rotate-180 transition-transform text-white/70"
-                  />
-                </button>
-
-                <div className="absolute right-0 pt-2 w-full min-w-[220px] hidden group-hover:block">
-                  <div className="bg-white/95 backdrop-blur-sm shadow-2xl rounded-lg overflow-hidden border border-white/20">
-                    {menu.dropdown.map((item) => (
-                      <Link
-                        key={item.title}
-                        to={item.path}
-                        className="block px-5 py-3 hover:bg-blue-50 transition text-gray-800"
-                      >
-                        {item.title}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Hamburger Menu Button - Mobile */}
-        <button
-          className="lg:hidden p-2 rounded-md hover:bg-white/10 transition text-white relative z-[60]"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsMobileMenuOpen((prev) => !prev);
-          }}
-          aria-label="Toggle menu"
+    <header
+      ref={navRef}
+      id="main-nav"
+      className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur-sm border-b border-border shadow-none"
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+        {/* Brand / Logo */}
+        <Link
+          to="/"
+          className="flex items-center gap-2.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 rounded-xl"
         >
-          {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
-        </button>
-      </div>
-
-      {/* Mobile Menu - Vertical Dropdowns */}
-      <div
-        id="mobile-menu"
-        className={`lg:hidden absolute left-0 right-0 transition-all duration-300 ease-in-out ${
-          isMobileMenuOpen
-            ? "max-h-[calc(100vh-72px)] opacity-100"
-            : "max-h-0 opacity-0 overflow-hidden"
-        }`}
-        style={{
-          top: "calc(100% + 4px)",
-          overflowY: "auto",
-          zIndex: 60,
-        }}
-      >
-        <div className="bg-gradient-to-b from-blue-900/95 to-slate-900/95 backdrop-blur-md shadow-2xl rounded-lg p-4 space-y-4 border border-blue-500/20">
-          {/* Top Navigation - Mobile */}
-          <div className="flex flex-col gap-1 border-b border-white/10 pb-4">
-            {topNav.map((item, i) => (
-              <Link
-                key={item.title}
-                to={item.link}
-                className="font-semibold transition-colors duration-300 text-white/90 hover:text-white py-3 px-3 rounded hover:bg-white/10"
-                onClick={closeMobileMenu}
-              >
-                {item.title}
-              </Link>
-            ))}
+          <div className="w-9 h-9 rounded-xl border border-border bg-muted/60 flex items-center justify-center p-1.5 shrink-0">
+            <img
+              src={logo}
+              alt="Gamma Solutions"
+              className="w-full h-full object-contain"
+            />
           </div>
+          <span className="text-base font-medium tracking-tight text-foreground">
+            Gamma Solutions
+          </span>
+        </Link>
 
-          {/* Bottom Navigation - Mobile with vertical accordion */}
-          <div className="flex flex-col gap-1">
-            {bottomNav.map((menu, index) => (
-              <div key={menu.title} className="border-b border-white/10 pb-2 last:border-0">
+        {/* Desktop Navigation */}
+        <nav
+          className="hidden lg:flex items-center gap-1"
+          aria-label="Primary navigation"
+        >
+          <NavLink to="/" end className={navLinkClasses}>
+            Home
+          </NavLink>
+          <NavLink to="/about" className={navLinkClasses}>
+            About
+          </NavLink>
+
+          {/* Dropdown menus (Products, Services, Resources) */}
+          {bottomNav.map((menu, index) => {
+            const isOpen = desktopDropdown === index;
+            return (
+              <div
+                key={menu.title}
+                className="relative"
+                onMouseEnter={() => setDesktopDropdown(index)}
+                onMouseLeave={() => setDesktopDropdown(null)}
+              >
                 <button
-                  className="flex items-center justify-between w-full font-semibold text-white/90 hover:text-white py-3 px-3 rounded hover:bg-white/10 transition"
-                  onClick={() => toggleDropdown(index)}
+                  type="button"
+                  onClick={() =>
+                    setDesktopDropdown((prev) => (prev === index ? null : index))
+                  }
+                  aria-expanded={isOpen}
+                  className={`inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-xl transition-colors ${
+                    isOpen
+                      ? "text-foreground bg-muted"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                  }`}
                 >
                   <span>{menu.title}</span>
                   <ChevronDown
-                    size={18}
-                    className={`transition-transform text-white/70 ${
-                      openDropdown === index ? "rotate-180" : ""
+                    className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                      isOpen ? "rotate-180" : ""
                     }`}
                   />
                 </button>
 
-                <div
-                  className={`overflow-hidden transition-all duration-300 ${
-                    openDropdown === index ? "max-h-[500px]" : "max-h-0"
-                  }`}
-                >
-                  <div className="ml-4 mt-1 space-y-1 flex flex-col">
-                    {menu.dropdown.map((item) => (
-                      <Link
-                        key={item.title}
-                        to={item.path}
-                        className="text-white/80 hover:text-white py-2.5 px-4 rounded hover:bg-white/10 transition pl-6"
-                        onClick={closeMobileMenu}
-                      >
-                        {item.title}
-                      </Link>
-                    ))}
+                {/* Floating Popover (Elevation allowed for floating layers per Calm UI) */}
+                {isOpen && (
+                  <div className="absolute left-0 top-full pt-1.5 w-60 z-50">
+                    <div className="bg-popover border border-border rounded-xl shadow-lg p-1.5">
+                      {menu.dropdown.map((item) => (
+                        <Link
+                          key={item.title}
+                          to={item.path}
+                          className="block px-3 py-2 text-sm text-foreground/80 hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                          onClick={() => setDesktopDropdown(null)}
+                        >
+                          {toSentenceCase(item.title)}
+                        </Link>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
-            ))}
-          </div>
+            );
+          })}
+
+          <NavLink to="/projects" className={navLinkClasses}>
+            Projects
+          </NavLink>
+          <NavLink to="/contact" className={navLinkClasses}>
+            Contact
+          </NavLink>
+        </nav>
+
+        {/* Right Actions (Auth / CTA) */}
+        <div className="hidden lg:flex items-center gap-2">
+          {loggedIn ? (
+            <Link
+              to="/admin/dashboard"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium text-primary-foreground bg-primary rounded-xl hover:opacity-90 transition-opacity"
+            >
+              <span>Dashboard</span>
+              <ArrowUpRight className="w-3.5 h-3.5 opacity-70" />
+            </Link>
+          ) : (
+            <Link
+              to="/contact"
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-xl hover:opacity-90 transition-opacity"
+            >
+              Contact us
+            </Link>
+          )}
         </div>
+
+        {/* Mobile Hamburger Toggle */}
+        <button
+          type="button"
+          onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+          className="lg:hidden p-2 rounded-xl text-foreground hover:bg-muted transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
+          aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={isMobileMenuOpen}
+        >
+          {isMobileMenuOpen ? (
+            <X className="w-5 h-5" />
+          ) : (
+            <Menu className="w-5 h-5" />
+          )}
+        </button>
       </div>
 
-      {/* Overlay for mobile menu */}
+      {/* Mobile Drawer */}
       {isMobileMenuOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50"
-          style={{ zIndex: 55 }}
+          id="mobile-menu"
+          className="lg:hidden border-t border-border bg-background px-4 py-4 space-y-3 max-h-[calc(100vh-4rem)] overflow-y-auto"
+        >
+          <div className="flex flex-col space-y-1">
+            <NavLink
+              to="/"
+              end
+              className={navLinkClasses}
+              onClick={closeMobileMenu}
+            >
+              Home
+            </NavLink>
+            <NavLink
+              to="/about"
+              className={navLinkClasses}
+              onClick={closeMobileMenu}
+            >
+              About
+            </NavLink>
+
+            {/* Mobile Accordions */}
+            {bottomNav.map((menu, index) => {
+              const isExpanded = openDropdown === index;
+              return (
+                <div key={menu.title} className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => toggleMobileDropdown(index)}
+                    aria-expanded={isExpanded}
+                    className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-foreground rounded-xl hover:bg-muted transition-colors text-left"
+                  >
+                    <span>{menu.title}</span>
+                    <ChevronDown
+                      className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${
+                        isExpanded ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {isExpanded && (
+                    <div className="pl-3 space-y-1 border-l-2 border-border ml-3 my-1">
+                      {menu.dropdown.map((item) => (
+                        <Link
+                          key={item.title}
+                          to={item.path}
+                          className="block px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors"
+                          onClick={closeMobileMenu}
+                        >
+                          {toSentenceCase(item.title)}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            <NavLink
+              to="/projects"
+              className={navLinkClasses}
+              onClick={closeMobileMenu}
+            >
+              Projects
+            </NavLink>
+            <NavLink
+              to="/contact"
+              className={navLinkClasses}
+              onClick={closeMobileMenu}
+            >
+              Contact
+            </NavLink>
+          </div>
+
+          {/* Mobile CTA / Auth */}
+          <div className="pt-3 border-t border-border flex flex-col gap-2">
+            {loggedIn ? (
+              <Link
+                to="/admin/dashboard"
+                className="flex items-center justify-center gap-1.5 w-full py-2.5 px-4 text-sm font-medium text-primary-foreground bg-primary rounded-xl hover:opacity-90 transition-opacity"
+                onClick={closeMobileMenu}
+              >
+                <span>Dashboard</span>
+                <ArrowUpRight className="w-4 h-4 opacity-70" />
+              </Link>
+            ) : (
+              <Link
+                to="/contact"
+                className="flex items-center justify-center w-full py-2.5 px-4 text-sm font-medium text-primary-foreground bg-primary rounded-xl hover:opacity-90 transition-opacity"
+                onClick={closeMobileMenu}
+              >
+                Contact us
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Backdrop overlay for mobile */}
+      {isMobileMenuOpen && (
+        <div
+          className="lg:hidden fixed inset-0 top-16 bg-black/20 backdrop-blur-[2px] -z-10"
           onClick={closeMobileMenu}
+          aria-hidden="true"
         />
       )}
-    </nav>
+    </header>
   );
 }
