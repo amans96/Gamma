@@ -4,25 +4,22 @@ import AboutHero from "../comp/AboutHero.jsx";
 import CompanyCards from "../comp/CompanyCards.jsx";
 import StrategicValues from "../comp/StrategicValues.jsx";
 import LeadershipTeam from "../comp/LeadershipTeam.jsx";
-import Footertemp from "../comp/Footertemp.jsx"
-function About() {
+import Footertemp from "../comp/Footertemp.jsx";
+
+export default function About() {
   return (
-    <div>
+    <div className="w-full bg-background">
       <HeroPage
-        pageName=""
+        pageName="About Gamma Solutions"
+        subtitle="Dedicated to advancing electrical infrastructure, reliable power distribution, and certified engineering standards."
         media={aboutImage}
         mediaType="image"
       />
-
-      <div className="flex justify-center w-full mt-5">
-        <AboutHero />
-      </div>
-      <CompanyCards/>
-      <StrategicValues/>
-      <LeadershipTeam/>
-      <Footertemp/>
+      <AboutHero />
+      <CompanyCards />
+      <StrategicValues />
+      <LeadershipTeam />
+      <Footertemp />
     </div>
   );
 }
-
-export default About;

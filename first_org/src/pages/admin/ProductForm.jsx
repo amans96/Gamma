@@ -1,36 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  X,
-  UploadCloud,
-  Image as ImageIcon,
-  AlertCircle,
-  Loader2,
-  Type,
-  Link as LinkIcon,
-  FileText,
-  Activity,
-} from "lucide-react";
+import { X, UploadCloud, Loader2, AlertCircle } from "lucide-react";
 
-// Dynamically use the hosted API URL if it exists, otherwise use localhost
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-
-// Framer Motion variants
-const backdropVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1 },
-};
-
-const modalVariants = {
-  hidden: { opacity: 0, scale: 0.95, y: 20 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    y: 0,
-    transition: { type: "spring", duration: 0.4, bounce: 0 },
-  },
-  exit: { opacity: 0, scale: 0.95, y: 20, transition: { duration: 0.2 } },
-};
 
 export default function ProductModal({ isOpen, product, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -43,14 +14,9 @@ export default function ProductModal({ isOpen, product, onClose, onSuccess }) {
 
   const [selectedImage, setSelectedImage] = useState(null);
   const [preview, setPreview] = useState("");
-
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
-
-  // ==========================================
-  // FILL FORM WHEN EDITING
-  // ==========================================
 
   useEffect(() => {
     if (product) {
@@ -58,11 +24,9 @@ export default function ProductModal({ isOpen, product, onClose, onSuccess }) {
         name: product.name || "",
         slug: product.slug || "",
         description: product.description || "",
-        image: product.image || "", 
+        image: product.image || "",
         status: product.status || "ACTIVE",
       });
-
-      // Since Cloudinary returns full http(s) URLs, we can just use the image directly
       setPreview(product.image || "");
     } else {
       setFormData({
@@ -74,426 +38,257 @@ export default function ProductModal({ isOpen, product, onClose, onSuccess }) {
       });
       setPreview("");
     }
-
     setSelectedImage(null);
     setError("");
   }, [product, isOpen]);
 
-  // ==========================================
-  // NORMAL INPUT CHANGES
-  // ==========================================
+  if (!isOpen) return null;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+      ...(name === "name" && !product
+        ? {
+            slug: value
+              .toLowerCase()
+              .trim()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/^-+|-+$/g, ""),
+          }
+        : {}),
     }));
   };
 
-  // ==========================================
-  // IMAGE SELECT
-  // ==========================================
-
   const handleImageChange = (e) => {
-    const file = e.target.files?.[0];
+    const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file type
-    const allowedTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/webp",
-      "image/gif",
-    ];
-    if (!allowedTypes.includes(file.type)) {
-      setError("Please select a JPG, PNG, WEBP or GIF image.");
+    if (!file.type.startsWith("image/")) {
+      setError("Please select a valid image file.");
       return;
     }
 
-    // Validate size (5MB)
     if (file.size > 5 * 1024 * 1024) {
-      setError("Image must be smaller than 5MB.");
+      setError("Image size must be less than 5MB.");
       return;
     }
 
-    setError("");
     setSelectedImage(file);
-
-    // Local preview while they fill out the rest of the form
-    const previewUrl = URL.createObjectURL(file);
-    setPreview(previewUrl);
+    setPreview(URL.createObjectURL(file));
+    setError("");
   };
-
-  // ==========================================
-  // UPLOAD IMAGE TO CLOUDINARY VIA BACKEND
-  // ==========================================
-
-const uploadImage = async () => {
-  if (!selectedImage) return formData.image;
-
-  const token = localStorage.getItem("token");
-  const uploadData = new FormData();
-  uploadData.append("image", selectedImage);
-
-  setUploading(true);
-
-  try {
-    const response = await fetch(`${API_URL}/images/product`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: uploadData,
-    });
-
-    const responseText = await response.text();
-
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch {
-      data = { message: responseText || "The server returned an invalid response." };
-    }
-
-    if (!response.ok) {
-      console.error("IMAGE UPLOAD FAILED:", {
-        status: response.status,
-        response: data,
-      });
-
-      throw new Error(
-        data.message || `Image upload failed with status ${response.status}`
-      );
-    }
-
-    if (!data.image) {
-      throw new Error("The server uploaded the image but did not return its URL.");
-    }
-
-    return data.image;
-  } catch (error) {
-    console.error("IMAGE UPLOAD ERROR:", error);
-    throw error;
-  } finally {
-    setUploading(false);
-  }
-};
-
-  // ==========================================
-  // SUBMIT
-  // ==========================================
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setSaving(true);
 
     try {
-      setSaving(true);
-      setError("");
-
       const token = localStorage.getItem("token");
-      const isEditing = Boolean(product);
-      
-      // Keep this! It properly checks for MongoDB _id
-      const url = isEditing
-        ? `${API_URL}/products/${product._id || product.id}`
-        : `${API_URL}/products`;
+      if (!token) throw new Error("You are not authenticated. Please log in.");
 
-      // 1. If there's a new image, upload it first to get the Cloudinary URL
-      let finalImageUrl = formData.image;
+      let imageUrl = formData.image;
+
+      // Handle image upload if a file was selected
       if (selectedImage) {
-        finalImageUrl = await uploadImage();
+        setUploading(true);
+        const uploadData = new FormData();
+        uploadData.append("image", selectedImage);
+
+        const uploadRes = await fetch(`${API_URL}/upload`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: uploadData,
+        });
+
+        const uploadJson = await uploadRes.json();
+        if (!uploadRes.ok) {
+          throw new Error(uploadJson.message || "Failed to upload image.");
+        }
+
+        imageUrl = uploadJson.imageUrl || uploadJson.url || uploadJson.path;
+        setUploading(false);
       }
 
-      // 2. Send the rest of the product data + the final URL to your database
-      const response = await fetch(url, {
-        method: isEditing ? "PUT" : "POST",
+      const payload = {
+        name: formData.name.trim(),
+        slug: formData.slug.trim(),
+        description: formData.description.trim(),
+        image: imageUrl,
+        status: formData.status,
+      };
+
+      const url = product
+        ? `${API_URL}/products/${product.id}`
+        : `${API_URL}/products`;
+
+      const method = product ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          ...formData,
-          image: finalImageUrl,
-        }),
+        body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || `Failed to ${isEditing ? "update" : "create"} product`
-        );
+      const resJson = await res.json();
+      if (!res.ok) {
+        throw new Error(resJson.message || "Failed to save product.");
       }
 
       onSuccess();
+      onClose();
     } catch (err) {
       console.error("PRODUCT SAVE ERROR:", err);
-      setError(err.message || "Something went wrong");
+      setError(err.message || "An unexpected error occurred.");
     } finally {
       setSaving(false);
+      setUploading(false);
     }
   };
 
-  // ==========================================
-  // UI
-  // ==========================================
-
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-          {/* Backdrop */}
-          <motion.div
-            variants={backdropVariants}
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
-            className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm"
-            onMouseDown={() => {
-              if (!saving && !uploading) onClose();
-            }}
-          />
-
-          {/* Modal Content */}
-          <motion.div
-            variants={modalVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            className="relative flex w-full max-w-2xl max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-[2px]">
+      <div className="w-full max-w-lg rounded-xl border border-border bg-card p-6 space-y-5 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between pb-3 border-b border-border">
+          <h2 className="text-base font-medium text-foreground tracking-tight">
+            {product ? "Edit product" : "Add new product"}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
           >
-            {/* Header */}
-            <div className="z-10 flex items-center justify-between border-b border-gray-100 bg-white px-6 py-5">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">
-                  {product ? "Edit Product" : "Add New Product"}
-                </h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  {product
-                    ? "Update the details and information of your product."
-                    : "Fill in the details below to add a new product to your inventory."}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={saving || uploading}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Scrollable Form Body */}
-            <div className="custom-scrollbar overflow-y-auto px-6 py-6">
-              {/* Error Banner */}
-              <AnimatePresence>
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4"
-                  >
-                    <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
-                    <p className="text-sm font-medium text-red-700">{error}</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <form id="product-form" onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  {/* Name */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      Product Name
-                    </label>
-                    <div className="group relative">
-                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                        <Type className="h-5 w-5 text-gray-400 transition-colors group-focus-within:text-indigo-500" />
-                      </div>
-                      <input
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        placeholder="e.g. Wireless Headphones"
-                        required
-                        className="block w-full rounded-xl border border-gray-200 py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Slug */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-700">
-                      URL Slug
-                    </label>
-                    <div className="group relative">
-                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                        <LinkIcon className="h-5 w-5 text-gray-400 transition-colors group-focus-within:text-indigo-500" />
-                      </div>
-                      <input
-                        type="text"
-                        name="slug"
-                        value={formData.slug}
-                        onChange={handleChange}
-                        placeholder="wireless-headphones"
-                        required
-                        className="block w-full rounded-xl border border-gray-200 py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-gray-700">
-                    Description
-                  </label>
-                  <div className="group relative">
-                    <div className="pointer-events-none absolute left-3 top-3">
-                      <FileText className="h-5 w-5 text-gray-400 transition-colors group-focus-within:text-indigo-500" />
-                    </div>
-                    <textarea
-                      name="description"
-                      value={formData.description}
-                      onChange={handleChange}
-                      placeholder="Write a detailed description of your product..."
-                      rows={4}
-                      className="block w-full resize-none rounded-xl border border-gray-200 py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                    />
-                  </div>
-                </div>
-
-                {/* Image Dropzone */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-gray-700">
-                    Product Image
-                  </label>
-
-                  <div className="mt-2">
-                    {preview ? (
-                      <div className="group relative h-48 w-full overflow-hidden rounded-2xl border-2 border-gray-200 bg-gray-50">
-                        <img
-                          src={preview}
-                          alt="Preview"
-                          className="h-full w-full object-contain"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                          }}
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-                          <label className="cursor-pointer rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-900 shadow-sm transition-colors hover:bg-gray-50">
-                            Change Image
-                            <input
-                              type="file"
-                              accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-                              onChange={handleImageChange}
-                              className="hidden"
-                            />
-                          </label>
-                        </div>
-                      </div>
-                    ) : (
-                      <label className="group flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50/50 transition-colors hover:border-indigo-400 hover:bg-indigo-50">
-                        <div className="flex flex-col items-center justify-center pb-6 pt-5">
-                          <div className="mb-3 rounded-full bg-white p-3 shadow-sm transition-transform group-hover:scale-110">
-                            <UploadCloud className="h-6 w-6 text-indigo-500" />
-                          </div>
-                          <p className="mb-1 text-sm text-gray-600">
-                            <span className="font-semibold text-indigo-600">
-                              Click to upload
-                            </span>{" "}
-                            or drag and drop
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            JPG, PNG, WEBP, or GIF (max 5MB)
-                          </p>
-                        </div>
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-                          onChange={handleImageChange}
-                        />
-                      </label>
-                    )}
-                  </div>
-                </div>
-
-                {/* Status */}
-                <div className="space-y-2 pb-4">
-                  <label className="block text-sm font-semibold text-gray-700">
-                    Status
-                  </label>
-                  <div className="group relative">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                      <Activity className="h-5 w-5 text-gray-400 transition-colors group-focus-within:text-indigo-500" />
-                    </div>
-                    <select
-                      name="status"
-                      value={formData.status}
-                      onChange={handleChange}
-                      className="block w-full appearance-none rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-10 text-sm outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                    >
-                      <option value="ACTIVE">Active</option>
-                      <option value="INACTIVE">Inactive</option>
-                    </select>
-                    {/* Custom Dropdown Arrow */}
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </form>
-            </div>
-
-            {/* Footer Buttons */}
-            <div className="flex justify-end gap-3 rounded-b-2xl border-t border-gray-100 bg-gray-50/50 px-6 py-5">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={saving || uploading}
-                className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                form="product-form"
-                disabled={saving || uploading}
-                className="min-w-[140px] inline-flex items-center justify-center rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-indigo-700 active:scale-95 disabled:pointer-events-none disabled:opacity-70"
-              >
-                {saving || uploading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {uploading ? "Uploading..." : "Saving..."}
-                  </>
-                ) : product ? (
-                  "Save Changes"
-                ) : (
-                  "Create Product"
-                )}
-              </button>
-            </div>
-          </motion.div>
+            <X className="w-4 h-4" />
+          </button>
         </div>
-      )}
-    </AnimatePresence>
+
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50/80 p-3 flex items-start gap-2 text-xs text-red-700">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-foreground block">
+              Product name
+            </label>
+            <input
+              type="text"
+              name="name"
+              required
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="e.g. 50MVA Power Transformer"
+              className="w-full rounded-lg border border-border bg-muted/30 py-2 px-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-foreground focus:bg-card"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-foreground block">
+              URL slug
+            </label>
+            <input
+              type="text"
+              name="slug"
+              required
+              value={formData.slug}
+              onChange={handleChange}
+              placeholder="power-transformer-50mva"
+              className="w-full rounded-lg border border-border bg-muted/30 py-2 px-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-foreground focus:bg-card font-mono"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-foreground block">
+              Product description
+            </label>
+            <textarea
+              name="description"
+              rows={3}
+              value={formData.description}
+              onChange={handleChange}
+              placeholder="Engineering specifications, voltage capacity, and operating frequency..."
+              className="w-full rounded-lg border border-border bg-muted/30 py-2 px-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-foreground focus:bg-card resize-none"
+            />
+          </div>
+
+          {/* Image Upload */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-foreground block">
+              Product image
+            </label>
+            <div className="flex items-center gap-4">
+              {preview && (
+                <div className="w-16 h-16 rounded-lg overflow-hidden border border-border bg-muted shrink-0">
+                  <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                </div>
+              )}
+              <label className="flex-1 cursor-pointer rounded-lg border border-dashed border-border bg-muted/20 p-3 text-center hover:bg-muted/40 transition-colors">
+                <UploadCloud className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground block">
+                  {selectedImage ? selectedImage.name : "Select image file (PNG, JPG)"}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          </div>
+
+          {/* Status */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-foreground block">
+              Catalog status
+            </label>
+            <select
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              className="w-full rounded-lg border border-border bg-muted/30 py-2 px-3 text-xs sm:text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground focus:bg-card"
+            >
+              <option value="ACTIVE">Active (Visible publicly)</option>
+              <option value="DRAFT">Draft (Hidden)</option>
+            </select>
+          </div>
+
+          <div className="pt-3 border-t border-border flex items-center justify-end gap-2.5">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={saving}
+              className="px-4 py-2 rounded-xl border border-border bg-card text-xs font-medium text-foreground hover:bg-muted transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving || uploading}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+            >
+              {saving || uploading ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>{uploading ? "Uploading..." : "Saving..."}</span>
+                </>
+              ) : (
+                <span>{product ? "Save changes" : "Create product"}</span>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }

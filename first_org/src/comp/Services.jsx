@@ -1,93 +1,40 @@
 import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import {
-  Loader2,
   AlertCircle,
-  LayoutTemplate,
+  Wrench,
   ChevronDown,
-  ChevronUp,
+  ArrowRight,
+  RefreshCw,
+  CheckCircle2,
 } from "lucide-react";
 
 const API_URL =
   import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-const BACKEND_URL =
-  import.meta.env.VITE_API_URL?.replace("/api", "") ||
-  "http://localhost:5000";
-
-// ==========================================
-// CACHE SETTINGS
-// ==========================================
+const BACKEND_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+).replace(/\/api\/?$/, "");
 
 const SERVICES_CACHE_KEY = "gama_services_cache";
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-// ==========================================
-// ANIMATIONS
-// ==========================================
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const cardVariants = {
-  hidden: {
-    opacity: 0,
-    y: 20,
-  },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-      ease: "easeOut",
-    },
-  },
-};
-
-// ==========================================
-// SERVICES CACHE HELPERS
-// ==========================================
+const CACHE_DURATION = 5 * 60 * 1000;
 
 const getCachedServices = () => {
   try {
     const cached = localStorage.getItem(SERVICES_CACHE_KEY);
-
-    if (!cached) {
-      return null;
-    }
-
+    if (!cached) return null;
     const parsedCache = JSON.parse(cached);
-
-    if (
-      !parsedCache ||
-      !Array.isArray(parsedCache.services) ||
-      !parsedCache.timestamp
-    ) {
+    if (!parsedCache || !Array.isArray(parsedCache.services) || !parsedCache.timestamp) {
       localStorage.removeItem(SERVICES_CACHE_KEY);
       return null;
     }
-
-    const cacheAge = Date.now() - parsedCache.timestamp;
-
-    // Cache expired
-    if (cacheAge > CACHE_DURATION) {
+    if (Date.now() - parsedCache.timestamp > CACHE_DURATION) {
       localStorage.removeItem(SERVICES_CACHE_KEY);
       return null;
     }
-
     return parsedCache.services;
   } catch (error) {
-    console.error("SERVICES CACHE READ ERROR:", error);
-
     localStorage.removeItem(SERVICES_CACHE_KEY);
-
     return null;
   }
 };
@@ -106,21 +53,11 @@ const cacheServices = (services) => {
   }
 };
 
-// ==========================================
-// COMPONENT
-// ==========================================
-
 export default function Services() {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  // Keeps track of which service cards are expanded
   const [expandedServices, setExpandedServices] = useState({});
-
-  // ==========================================
-  // FETCH SERVICES
-  // ==========================================
 
   useEffect(() => {
     let isMounted = true;
@@ -128,342 +65,219 @@ export default function Services() {
     const fetchServices = async () => {
       try {
         setError("");
-
-        // ==========================================
-        // CHECK CACHE FIRST
-        // ==========================================
-
-        const cachedServices = getCachedServices();
-
-        if (cachedServices) {
-          console.log("SERVICES: Using cached data");
-
+        const cached = getCachedServices();
+        if (cached) {
           if (isMounted) {
-            setServices(cachedServices);
+            setServices(cached);
             setLoading(false);
           }
-
           return;
         }
 
-        // ==========================================
-        // NO CACHE - FETCH FROM API
-        // ==========================================
-
-        console.log("SERVICES: Fetching from API");
-
-        if (isMounted) {
-          setLoading(true);
-        }
+        if (isMounted) setLoading(true);
 
         const response = await fetch(`${API_URL}/services/public`);
-
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            data.message || "Failed to load services"
-          );
+          throw new Error(data.message || "Failed to load services");
         }
 
         const fetchedServices = data.services || [];
-
-        // ==========================================
-        // SAVE TO CACHE
-        // ==========================================
-
         cacheServices(fetchedServices);
 
         if (isMounted) {
           setServices(fetchedServices);
         }
       } catch (err) {
-        console.error("SERVICES ERROR:", err);
-
-        // ==========================================
-        // FALLBACK TO OLD CACHE
-        // ==========================================
-
         try {
-          const oldCache = localStorage.getItem(
-            SERVICES_CACHE_KEY
-          );
-
+          const oldCache = localStorage.getItem(SERVICES_CACHE_KEY);
           if (oldCache) {
-            const parsedCache = JSON.parse(oldCache);
-
-            if (
-              parsedCache &&
-              Array.isArray(parsedCache.services)
-            ) {
-              console.log(
-                "SERVICES: API failed, using old cached data"
-              );
-
+            const parsed = JSON.parse(oldCache);
+            if (parsed && Array.isArray(parsed.services)) {
               if (isMounted) {
-                setServices(parsedCache.services);
+                setServices(parsed.services);
                 setError("");
               }
-
               return;
             }
           }
-        } catch (cacheError) {
-          console.error(
-            "SERVICES FALLBACK CACHE ERROR:",
-            cacheError
-          );
-        }
+        } catch (_) {}
 
         if (isMounted) {
-          setError(
-            err.message || "Failed to load services"
-          );
+          setError(err.message || "Failed to load services");
         }
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchServices();
-
     return () => {
       isMounted = false;
     };
   }, []);
 
-  // ==========================================
-  // IMAGE URL
-  // ==========================================
-
   const getImageUrl = (image) => {
-    if (!image) return "";
-
-    if (
-      image.startsWith("http://") ||
-      image.startsWith("https://")
-    ) {
+    if (!image) return "/assets/prod2.jpg";
+    if (image.startsWith("http://") || image.startsWith("https://")) {
       return image;
     }
-
-    if (image.startsWith("/")) {
-      return `${BACKEND_URL}${image}`;
-    }
-
-    return `${BACKEND_URL}/${image}`;
+    return `${BACKEND_URL}${image.startsWith("/") ? "" : "/"}${image}`;
   };
 
-  // ==========================================
-  // SEE MORE / SEE LESS
-  // ==========================================
-
-  const toggleDescription = (serviceId) => {
-    setExpandedServices((prev) => ({
-      ...prev,
-      [serviceId]: !prev[serviceId],
-    }));
+  const toggleDescription = (id) => {
+    setExpandedServices((prev) => ({ ...prev, [id]: !prev[id] }));
   };
-
-  // ==========================================
-  // LOADING
-  // ==========================================
-
-  if (loading) {
-    return (
-      <section className="w-full py-20 sm:py-24">
-        <div className="mx-auto flex min-h-[400px] max-w-7xl flex-col items-center justify-center px-5">
-          <Loader2 className="mb-4 h-9 w-9 animate-spin text-indigo-600" />
-
-          <p className="text-sm font-medium text-gray-500">
-            Loading services...
-          </p>
-        </div>
-      </section>
-    );
-  }
-
-  // ==========================================
-  // ERROR
-  // ==========================================
-
-  if (error) {
-    return (
-      <section className="w-full py-20 sm:py-24">
-        <div className="mx-auto flex min-h-[400px] max-w-7xl items-center justify-center px-5">
-          <div className="w-full max-w-md rounded-2xl border border-red-100 bg-red-50 p-8 text-center">
-            <AlertCircle className="mx-auto mb-4 h-10 w-10 text-red-500" />
-
-            <h2 className="mb-2 text-xl font-semibold text-gray-900">
-              Unable to load services
-            </h2>
-
-            <p className="text-sm text-red-600">
-              {error}
-            </p>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  // ==========================================
-  // EMPTY
-  // ==========================================
-
-  if (services.length === 0) {
-    return (
-      <section className="w-full py-20 sm:py-24">
-        <div className="mx-auto flex min-h-[400px] max-w-7xl flex-col items-center justify-center px-5 text-center">
-          <div className="mb-5 rounded-2xl bg-gray-100 p-5">
-            <LayoutTemplate className="h-10 w-10 text-gray-400" />
-          </div>
-
-          <h2 className="mb-2 text-2xl font-bold text-gray-900">
-            No Services Available
-          </h2>
-
-          <p className="max-w-md text-gray-500">
-            Our services will appear here once they are
-            available.
-          </p>
-        </div>
-      </section>
-    );
-  }
-
-  // ==========================================
-  // MAIN UI
-  // ==========================================
 
   return (
-    <section className="w-full bg-white py-20 sm:py-24">
-      <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
-
-        {/* HEADER */}
-
-        <div className="mb-12 max-w-2xl">
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-2 text-sm font-semibold uppercase tracking-widest text-indigo-600"
-          >
-            What We Offer
-          </motion.p>
-
-          <motion.h2
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl"
-          >
-            Our Services
-          </motion.h2>
-
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="mt-4 max-w-xl text-base leading-7 text-gray-500 sm:text-lg"
-          >
-            Explore the services we provide and discover
-            how we can help you.
-          </motion.p>
+    <section className="w-full py-16 sm:py-24 bg-background border-b border-border">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="max-w-2xl mb-12 sm:mb-16">
+          <p className="text-xs font-medium text-muted-foreground mb-1.5">
+            Engineering services
+          </p>
+          <h2 className="text-2xl sm:text-4xl font-normal tracking-tight text-foreground">
+            Industrial engineering & field operations
+          </h2>
+          <p className="text-sm text-muted-foreground leading-relaxed mt-2">
+            Specialized substation maintenance, transformer testing, harmonic analysis, and turnkey industrial installation.
+          </p>
         </div>
 
-        {/* SERVICES */}
-
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
-        >
-          {services.map((service) => {
-            const isExpanded =
-              expandedServices[service.id] || false;
-
-            return (
-              <motion.article
-                key={service.id}
-                variants={cardVariants}
-                className="group flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-              >
-                {/* IMAGE */}
-
-                <div className="relative h-52 shrink-0 overflow-hidden bg-gray-100 sm:h-56">
-                  {service.image ? (
-                    <img
-                      src={getImageUrl(service.image)}
-                      alt={service.name}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      onError={(e) => {
-                        e.currentTarget.style.display =
-                          "none";
-                      }}
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <LayoutTemplate className="h-12 w-12 text-gray-300" />
-                    </div>
-                  )}
+        {/* Loading Skeleton */}
+        {loading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-xl border border-border bg-card p-6 space-y-4">
+                <div className="aspect-[16/10] rounded-lg bg-muted" />
+                <div className="h-5 w-1/2 rounded bg-muted" />
+                <div className="space-y-2">
+                  <div className="h-4 w-full rounded bg-muted" />
+                  <div className="h-4 w-5/6 rounded bg-muted" />
                 </div>
+              </div>
+            ))}
+          </div>
+        )}
 
-                {/* CONTENT */}
+        {/* Error */}
+        {error && !loading && (
+          <div className="rounded-xl border border-border bg-muted/40 p-10 text-center max-w-md mx-auto">
+            <AlertCircle className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+            <p className="text-sm text-foreground mb-4">{error}</p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Retry</span>
+            </button>
+          </div>
+        )}
 
-                <div className="flex flex-1 flex-col p-6">
+        {/* Empty */}
+        {!loading && !error && services.length === 0 && (
+          <div className="rounded-xl border border-border bg-card p-12 text-center max-w-md mx-auto">
+            <Wrench className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+            <h3 className="text-base font-medium text-foreground mb-1">
+              No services listed
+            </h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Services information will be published shortly.
+            </p>
+            <Link
+              to="/contact"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              <span>Contact engineering</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        )}
 
-                  {/* SERVICE NAME */}
+        {/* Services Cards */}
+        {!loading && !error && services.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {services.map((service) => {
+              const isExpanded = expandedServices[service.id];
+              return (
+                <div
+                  key={service.id}
+                  className="rounded-xl border border-border bg-muted/30 p-1.5 flex flex-col justify-between"
+                >
+                  {/* Tinted Top Bar */}
+                  <div className="px-4 py-2.5 flex items-center justify-between">
+                    <span className="text-xs font-mono text-muted-foreground">
+                      Service #{String(service.id).padStart(3, "0")}
+                    </span>
+                    <span className="text-[11px] font-medium text-muted-foreground bg-card px-2 py-0.5 rounded-md border border-border">
+                      Certified
+                    </span>
+                  </div>
 
-                  <h3 className="text-xl font-semibold text-gray-900 transition-colors duration-300 group-hover:text-indigo-600">
-                    {service.name}
-                  </h3>
+                  {/* Concentric Inner Body */}
+                  <div className="flex-1 rounded-[calc(0.75rem-4px)] bg-card border border-border/80 p-5 flex flex-col justify-between space-y-4">
+                    <div className="space-y-3">
+                      {service.image && (
+                        <div className="aspect-[16/10] rounded-lg overflow-hidden bg-muted border border-border/60">
+                          <img
+                            src={getImageUrl(service.image)}
+                            alt={service.title || service.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
 
-                  {/* DESCRIPTION */}
+                      <h3 className="text-base font-medium text-foreground tracking-tight">
+                        {service.title || service.name}
+                      </h3>
 
-                  {service.description && (
-                    <div className="mt-3">
                       <p
-                        className={`text-sm leading-6 text-gray-600 ${
-                          !isExpanded
-                            ? "line-clamp-5"
-                            : ""
+                        className={`text-xs text-muted-foreground leading-relaxed ${
+                          isExpanded ? "" : "line-clamp-3"
                         }`}
                       >
                         {service.description}
                       </p>
 
-                      {/* SEE MORE / SEE LESS */}
-
-                      {service.description.length > 250 && (
+                      {service.description && service.description.length > 120 && (
                         <button
                           type="button"
-                          onClick={() =>
-                            toggleDescription(service.id)
-                          }
-                          className="mt-4 flex items-center gap-1.5 text-sm font-semibold text-indigo-600 transition-colors hover:text-indigo-800"
+                          onClick={() => toggleDescription(service.id)}
+                          className="text-xs font-medium text-foreground hover:underline inline-flex items-center gap-1"
                         >
-                          {isExpanded ? (
-                            <>
-                              See less
-                              <ChevronUp className="h-4 w-4" />
-                            </>
-                          ) : (
-                            <>
-                              See more
-                              <ChevronDown className="h-4 w-4" />
-                            </>
-                          )}
+                          <span>{isExpanded ? "Show less" : "Read details"}</span>
+                          <ChevronDown
+                            className={`w-3.5 h-3.5 transition-transform ${
+                              isExpanded ? "rotate-180" : ""
+                            }`}
+                          />
                         </button>
                       )}
                     </div>
-                  )}
+
+                    <div className="pt-3 border-t border-border/60 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Field certified</span>
+                      </div>
+                      <Link
+                        to="/contact"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-foreground hover:text-foreground/80 transition-colors"
+                      >
+                        <span>Book service</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </div>
                 </div>
-              </motion.article>
-            );
-          })}
-        </motion.div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </section>
   );

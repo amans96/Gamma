@@ -1,6 +1,4 @@
-
 import { useCallback, useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import {
   Package,
   Wrench,
@@ -10,30 +8,22 @@ import {
   AlertCircle,
   Loader2,
   RefreshCw,
+  ArrowUpRight,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const API_URL =
   import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-// ==========================================
-// DASHBOARD CACHE SETTINGS
-// ==========================================
-
 const DASHBOARD_CACHE_KEY = "gama_admin_dashboard_cache";
-const DASHBOARD_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const DASHBOARD_CACHE_DURATION = 5 * 60 * 1000;
 
 function readDashboardCache() {
   try {
     const cached = sessionStorage.getItem(DASHBOARD_CACHE_KEY);
-
     if (!cached) return null;
-
     const parsed = JSON.parse(cached);
-
-    if (!parsed.dashboard || typeof parsed.cachedAt !== "number") {
-      return null;
-    }
-
+    if (!parsed.dashboard || typeof parsed.cachedAt !== "number") return null;
     return parsed;
   } catch {
     return null;
@@ -62,38 +52,11 @@ function clearDashboardCache() {
   }
 }
 
-// ==========================================
-// FRAMER MOTION
-// ==========================================
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { type: "spring", stiffness: 300, damping: 24 },
-  },
-};
-
-// ==========================================
-// DASHBOARD COMPONENT
-// ==========================================
-
-const Dashboard = () => {
+export default function Dashboard() {
   const [initialCache] = useState(() => readDashboardCache());
-
   const [dashboard, setDashboard] = useState(
     () => initialCache?.dashboard || null
   );
-
   const [loading, setLoading] = useState(!initialCache?.dashboard);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -107,12 +70,10 @@ const Dashboard = () => {
       } else {
         setLoading(true);
       }
-
       setError("");
 
       try {
         const token = localStorage.getItem("token");
-
         if (!token) {
           clearDashboardCache();
           setDashboard(null);
@@ -134,7 +95,6 @@ const Dashboard = () => {
             clearDashboardCache();
             setDashboard(null);
           }
-
           throw new Error(data.message || "Failed to load dashboard.");
         }
 
@@ -146,9 +106,7 @@ const Dashboard = () => {
         writeDashboardCache(data);
       } catch (err) {
         console.error("DASHBOARD ERROR:", err);
-
-        // Keep displaying cached data if the background refresh fails.
-        setError((currentError) => {
+        setError((current) => {
           if (dashboard || hasCachedDashboard) return "";
           return err.message || "Failed to load dashboard.";
         });
@@ -160,7 +118,6 @@ const Dashboard = () => {
     [dashboard, hasCachedDashboard]
   );
 
-  // Load immediately from cache, then refresh only when the cache is stale.
   useEffect(() => {
     const cacheIsFresh =
       initialCache &&
@@ -171,235 +128,176 @@ const Dashboard = () => {
     }
   }, [initialCache, fetchDashboard]);
 
-  // ==========================================
-  // LOADING STATE
-  // ==========================================
-
   if (loading && !dashboard) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-        <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
-        <p className="text-gray-500 font-medium animate-pulse">
-          Loading your dashboard...
+      <div className="flex flex-col items-center justify-center min-h-[350px] space-y-3">
+        <Loader2 className="w-7 h-7 text-muted-foreground animate-spin" />
+        <p className="text-xs text-muted-foreground">
+          Loading dashboard metrics...
         </p>
       </div>
     );
   }
 
-  // ==========================================
-  // ERROR STATE
-  // ==========================================
-
   if (error && !dashboard) {
     return (
-      <div className="p-8">
-        <div className="flex flex-col items-center justify-center p-8 bg-red-50 rounded-2xl border border-red-100 max-w-lg mx-auto text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-          <h2 className="text-lg font-semibold text-red-800 mb-2">
-            Something went wrong
-          </h2>
-          <p className="text-red-600">{error}</p>
-
-          <button
-            type="button"
-            onClick={() => fetchDashboard()}
-            className="mt-5 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
-          >
-            Try again
-          </button>
-        </div>
+      <div className="rounded-xl border border-red-200 bg-red-50/70 p-6 max-w-lg mx-auto text-center space-y-3">
+        <AlertCircle className="w-8 h-8 text-red-600 mx-auto" />
+        <h2 className="text-sm font-medium text-red-900">
+          Unable to load dashboard data
+        </h2>
+        <p className="text-xs text-red-700">{error}</p>
+        <button
+          type="button"
+          onClick={() => fetchDashboard()}
+          className="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-medium hover:bg-red-700 transition"
+        >
+          Try again
+        </button>
       </div>
     );
   }
 
   if (!dashboard) return null;
 
-  // ==========================================
-  // DASHBOARD STATISTICS
-  // ==========================================
-
   const statCards = [
     {
-      title: "Products",
+      title: "Products in catalog",
       value: dashboard.stats.products,
       icon: Package,
-      color: "text-blue-600",
-      bg: "bg-blue-50",
+      path: "/admin/products",
     },
     {
-      title: "Services",
+      title: "Active services",
       value: dashboard.stats.services,
       icon: Wrench,
-      color: "text-emerald-600",
-      bg: "bg-emerald-50",
+      path: "/admin/services",
     },
     {
-      title: "Blog Posts",
+      title: "Published articles",
       value: dashboard.stats.blogPosts,
       icon: FileText,
-      color: "text-purple-600",
-      bg: "bg-purple-50",
+      path: "/admin/blog",
     },
     {
-      title: "Partners",
+      title: "Corporate partners",
       value: dashboard.stats.partners,
       icon: Users,
-      color: "text-orange-600",
-      bg: "bg-orange-50",
+      path: "/admin/partners",
     },
   ];
 
-  // ==========================================
-  // DASHBOARD UI
-  // ==========================================
-
   return (
-    <div className="min-h-screen bg-gray-50/50 p-6 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-              Overview
-            </h1>
-            <p className="text-gray-500 mt-1">
-              Welcome back. Here's what's happening today.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => fetchDashboard({ background: Boolean(dashboard) })}
-            disabled={refreshing}
-            title="Refresh dashboard"
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-60 transition"
-          >
-            <RefreshCw
-              className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
-            />
-            <span className="hidden sm:inline">
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </span>
-          </button>
+    <div className="max-w-6xl mx-auto space-y-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-normal tracking-tight text-foreground">
+            System overview
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Operational statistics and recent administrative activity.
+          </p>
         </div>
 
-        {/* Background refresh notice */}
-        {refreshing && (
-          <p className="text-sm text-gray-500">
-            Updating dashboard data...
-          </p>
-        )}
-
-        {/* Refresh error: cached dashboard remains visible */}
-        {error && dashboard && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Could not refresh the dashboard. Showing previously loaded data.
-          </div>
-        )}
-
-        {/* Statistics Grid */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+        <button
+          type="button"
+          onClick={() => fetchDashboard({ background: Boolean(dashboard) })}
+          disabled={refreshing}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border bg-card text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50 transition-colors self-start sm:self-auto"
         >
-          {statCards.map((stat) => {
-            const Icon = stat.icon;
+          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+          <span>{refreshing ? "Refreshing..." : "Refresh data"}</span>
+        </button>
+      </div>
 
-            return (
-              <motion.div
-                key={stat.title}
-                variants={itemVariants}
-                className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200 group"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-sm font-medium text-gray-500">
-                    {stat.title}
-                  </p>
+      {error && dashboard && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50/80 px-3.5 py-2.5 text-xs text-amber-800">
+          Could not refresh live data. Showing previously cached values.
+        </div>
+      )}
 
-                  <div
-                    className={`p-2 rounded-xl ${stat.bg} group-hover:scale-110 transition-transform duration-200`}
-                  >
-                    <Icon className={`w-5 h-5 ${stat.color}`} />
-                  </div>
+      {/* KPI Tiles (Calm UI: one number leads per surface, clean neutral frame) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {statCards.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <Link
+              key={stat.title}
+              to={stat.path}
+              className="rounded-xl border border-border bg-card p-5 space-y-3 transition-colors hover:border-foreground/20 block"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">
+                  {stat.title}
+                </span>
+                <div className="w-7 h-7 rounded-lg bg-muted border border-border flex items-center justify-center text-foreground">
+                  <Icon className="w-3.5 h-3.5" />
                 </div>
+              </div>
 
-                <h2 className="text-3xl font-bold text-gray-900">
+              <div className="flex items-baseline justify-between">
+                <span className="text-3xl font-light tracking-tight text-foreground">
                   {stat.value ?? 0}
-                </h2>
-              </motion.div>
-            );
-          })}
-        </motion.div>
+                </span>
+                <span className="text-[11px] text-muted-foreground flex items-center gap-0.5">
+                  Manage <ArrowUpRight className="w-3 h-3" />
+                </span>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
 
-        {/* Recent Activity */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, type: "spring" }}
-          className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
-        >
-          <div className="p-6 border-b border-gray-100 flex items-center gap-2">
-            <Activity className="w-5 h-5 text-gray-400" />
-            <h2 className="text-lg font-semibold text-gray-900">
-              Recent Activity
+      {/* Recent Activity */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Activity className="w-4 h-4 text-muted-foreground" />
+            <h2 className="text-sm font-medium text-foreground tracking-tight">
+              Recent administrative activity
             </h2>
           </div>
+          <span className="text-xs text-muted-foreground">
+            {dashboard.recentActivity.length} events logged
+          </span>
+        </div>
 
-          <div className="p-6">
-            {dashboard.recentActivity.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500">No recent activity found.</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {dashboard.recentActivity.map((activity, index) => (
-                  <div key={activity.id} className="flex gap-4 group">
-                    {/* Timeline dot */}
-                    <div className="relative flex flex-col items-center">
-                      <div className="w-3 h-3 rounded-full bg-blue-100 border-2 border-blue-500 mt-1.5 group-hover:bg-blue-500 transition-colors" />
-
-                      {index !== dashboard.recentActivity.length - 1 && (
-                        <div className="w-px h-full bg-gray-200 mt-2 absolute top-3" />
-                      )}
-                    </div>
-
-                    {/* Activity content */}
-                    <div className="pb-1">
-                      <p className="font-medium text-gray-900">
-                        {activity.details}
-                      </p>
-
-                      <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
-                        <span className="font-medium text-gray-700">
-                          {activity.user?.name || "Admin"}
-                        </span>
-
-                        <span>•</span>
-
-                        <span>
-                          {new Date(activity.createdAt).toLocaleDateString(
-                            undefined,
-                            {
-                              month: "short",
-                              day: "numeric",
-                              hour: "numeric",
-                              minute: "2-digit",
-                            }
-                          )}
-                        </span>
-                      </p>
-                    </div>
+        <div className="p-5">
+          {dashboard.recentActivity.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-xs text-muted-foreground">
+                No administrative activity has been recorded yet.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {dashboard.recentActivity.map((activity, index) => (
+                <div key={activity.id || index} className="flex items-start gap-3 text-xs">
+                  <div className="w-2 h-2 rounded-full bg-foreground/60 mt-1.5 shrink-0" />
+                  <div className="flex-1 space-y-0.5">
+                    <p className="font-medium text-foreground">
+                      {activity.details}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      <span>{activity.user?.name || "Admin"}</span>
+                      <span className="mx-1.5">•</span>
+                      <span>
+                        {new Date(activity.createdAt).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </p>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </motion.div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
-};
-
-export default Dashboard;
+}

@@ -17,6 +17,8 @@ import Project from "./pages/Projects.jsx";
 import BlogPage from "./pages/BlogPage.jsx";
 import ServicesPage from "./pages/ServicesPage.jsx";
 import WhyChooseUsDetail from "./comp/WhyChooseUsDetail.jsx";
+import Careers from "./pages/Careers.jsx";
+import CaseStudies from "./pages/CaseStudies.jsx";
 
 // Auth
 import Login from "./pages/Login.jsx";
@@ -94,6 +96,21 @@ const router = createBrowserRouter([
       {
         path: "blog",
         element: <BlogPage />,
+      },
+
+      {
+        path: "resources/careers",
+        element: <Careers />,
+      },
+
+      {
+        path: "resources/case-studies",
+        element: <CaseStudies />,
+      },
+
+      {
+        path: "resources/case-stdies",
+        element: <CaseStudies />,
       },
 
       {

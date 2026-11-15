@@ -1,17 +1,9 @@
-
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Search,
   Plus,
   Pencil,
   Trash2,
-  X,
   AlertTriangle,
   Loader2,
   PackageOpen,
@@ -19,35 +11,20 @@ import {
 } from "lucide-react";
 import ProductModal from "./ProductForm";
 
-const API_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 const BACKEND_URL = (
   import.meta.env.VITE_API_URL || "http://localhost:5000/api"
 ).replace(/\/api\/?$/, "");
 
-// ==========================================
-// PRODUCT CACHE SETTINGS
-// ==========================================
-
 const PRODUCT_CACHE_KEY = "gama_admin_products_cache";
-const PRODUCT_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const PRODUCT_CACHE_DURATION = 5 * 60 * 1000;
 
 function readProductCache() {
   try {
     const cached = sessionStorage.getItem(PRODUCT_CACHE_KEY);
-
     if (!cached) return null;
-
     const parsed = JSON.parse(cached);
-
-    if (
-      !Array.isArray(parsed.products) ||
-      typeof parsed.cachedAt !== "number"
-    ) {
-      return null;
-    }
-
+    if (!Array.isArray(parsed.products) || typeof parsed.cachedAt !== "number") return null;
     return parsed;
   } catch {
     return null;
@@ -76,82 +53,27 @@ function clearProductCache() {
   }
 }
 
-// ==========================================
-// FRAMER MOTION
-// ==========================================
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.05 },
-  },
-};
-
-const rowVariants = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0 },
-};
-
-const modalVariants = {
-  hidden: { opacity: 0, scale: 0.95 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    transition: { type: "spring", duration: 0.3 },
-  },
-  exit: {
-    opacity: 0,
-    scale: 0.95,
-    transition: { duration: 0.2 },
-  },
-};
-
-// ==========================================
-// PRODUCT COMPONENT
-// ==========================================
-
 export default function Product() {
   const [initialCache] = useState(() => readProductCache());
-
-  const [products, setProducts] = useState(
-    () => initialCache?.products || []
-  );
-
-  const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(!initialCache);
+  const [products, setProducts] = useState(() => initialCache?.products || []);
+  const [loading, setLoading] = useState(!initialCache?.products);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const [productModalOpen, setProductModalOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  const hasInitialCache = Boolean(initialCache);
+  const hasInitialCache = Boolean(initialCache?.products);
 
-  // ==========================================
-  // UPDATE PRODUCTS AND CACHE TOGETHER
-  // ==========================================
-
-  const updateProducts = useCallback((updater) => {
-    setProducts((currentProducts) => {
-      const nextProducts =
-        typeof updater === "function"
-          ? updater(currentProducts)
-          : updater;
-
-      writeProductCache(nextProducts);
-
-      return nextProducts;
-    });
+  const updateProducts = useCallback((newProducts) => {
+    setProducts(newProducts);
+    writeProductCache(newProducts);
   }, []);
-
-  // ==========================================
-  // FETCH PRODUCTS
-  // ==========================================
 
   const fetchProducts = useCallback(
     async ({ background = false } = {}) => {
@@ -160,23 +82,11 @@ export default function Product() {
       } else {
         setLoading(true);
       }
-
       setError("");
-
-      let forceError = false;
 
       try {
         const token = localStorage.getItem("token");
-
-        if (!token) {
-          clearProductCache();
-          setProducts([]);
-          forceError = true;
-
-          throw new Error(
-            "You are not logged in. Please log in again."
-          );
-        }
+        if (!token) throw new Error("Authentication token required.");
 
         const response = await fetch(`${API_URL}/products`, {
           method: "GET",
@@ -187,32 +97,16 @@ export default function Product() {
         });
 
         const data = await response.json();
-
         if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            clearProductCache();
-            setProducts([]);
-            forceError = true;
-          }
-
-          throw new Error(
-            data.message || "Failed to load products."
-          );
+          throw new Error(data.message || "Failed to load products.");
         }
 
-        const fetchedProducts = Array.isArray(data.products)
-          ? data.products
-          : [];
-
-        updateProducts(fetchedProducts);
+        const fetched = Array.isArray(data.products) ? data.products : [];
+        updateProducts(fetched);
       } catch (err) {
         console.error("GET PRODUCTS ERROR:", err);
-
-        // Preserve cached data if an ordinary background refresh fails.
-        if (forceError || !hasInitialCache) {
+        if (!hasInitialCache) {
           setError(err.message || "Failed to load products.");
-        } else {
-          setError("");
         }
       } finally {
         setLoading(false);
@@ -222,533 +116,267 @@ export default function Product() {
     [hasInitialCache, updateProducts]
   );
 
-  // ==========================================
-  // LOAD CACHE FIRST, REFRESH WHEN EXPIRED
-  // ==========================================
-
   useEffect(() => {
     const cacheIsFresh =
       initialCache &&
       Date.now() - initialCache.cachedAt < PRODUCT_CACHE_DURATION;
 
     if (!cacheIsFresh) {
-      fetchProducts({
-        background: Boolean(initialCache),
-      });
+      fetchProducts({ background: Boolean(initialCache) });
     }
   }, [initialCache, fetchProducts]);
 
-  // ==========================================
-  // SEARCH
-  // ==========================================
-
   const filteredProducts = useMemo(() => {
-    const query = searchQuery.toLowerCase().trim();
-
-    if (!query) return products;
-
-    return products.filter((product) =>
-      product.name?.toLowerCase().includes(query)
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return products;
+    return products.filter((p) =>
+      p.name?.toLowerCase().includes(q) || p.slug?.toLowerCase().includes(q)
     );
   }, [products, searchQuery]);
 
-  // ==========================================
-  // DELETE MODAL
-  // ==========================================
-
   const confirmDelete = (product) => {
-    setError("");
     setProductToDelete(product);
     setDeleteModalOpen(true);
   };
 
-  const closeDeleteModal = () => {
-    if (deleting) return;
-
-    setDeleteModalOpen(false);
-    setProductToDelete(null);
-  };
-
-  // ==========================================
-  // DELETE PRODUCT
-  // ==========================================
-
   const handleDelete = async () => {
     if (!productToDelete?.id) return;
-
-    const productId = productToDelete.id;
-
     try {
       setDeleting(true);
-      setError("");
-
       const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/products/${productToDelete.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      if (!token) {
-        throw new Error(
-          "You are not logged in. Please log in again."
-        );
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.message || "Failed to delete product.");
       }
 
-      const response = await fetch(
-        `${API_URL}/products/${productId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const responseText = await response.text();
-
-      let data = {};
-
-      if (responseText) {
-        try {
-          data = JSON.parse(responseText);
-        } catch {
-          data = {};
-        }
-      }
-
-      if (!response.ok) {
-        throw new Error(
-          data.message ||
-            `Failed to delete product. Server returned ${response.status}.`
-        );
-      }
-
-      // Update the UI and session cache immediately.
-      updateProducts((currentProducts) =>
-        currentProducts.filter(
-          (product) => String(product.id) !== String(productId)
-        )
-      );
-
+      setProducts((prev) => prev.filter((p) => p.id !== productToDelete.id));
       setDeleteModalOpen(false);
       setProductToDelete(null);
     } catch (err) {
-      console.error("DELETE PRODUCT ERROR:", err);
-      setError(err.message || "Failed to delete product.");
+      setError(err.message);
     } finally {
       setDeleting(false);
     }
   };
 
-  // ==========================================
-  // HELPERS
-  // ==========================================
-
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "ACTIVE":
-        return "bg-emerald-100 text-emerald-700 border-emerald-200";
-
-      case "INACTIVE":
-        return "bg-gray-100 text-gray-700 border-gray-200";
-
-      default:
-        return "bg-blue-100 text-blue-700 border-blue-200";
-    }
-  };
-
   const getImageUrl = (image) => {
     if (!image) return "";
-
-    if (/^https?:\/\//i.test(image)) {
-      return image;
-    }
-
-    return `${BACKEND_URL}${image.startsWith("/") ? image : `/${image}`}`;
+    if (image.startsWith("http://") || image.startsWith("https://")) return image;
+    return `${BACKEND_URL}${image.startsWith("/") ? "" : "/"}${image}`;
   };
 
-  // ==========================================
-  // INITIAL LOADING
-  // ==========================================
-
-  if (loading && products.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
-        <p className="text-gray-500 font-medium animate-pulse">
-          Loading products...
-        </p>
-      </div>
-    );
-  }
-
-  // ==========================================
-  // PAGE UI
-  // ==========================================
-
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full bg-gray-50/30 min-h-screen">
-      {/* HEADER */}
-      <div className="sm:flex sm:items-center sm:justify-between mb-8">
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-            Products
+          <h1 className="text-xl sm:text-2xl font-normal tracking-tight text-foreground">
+            Product catalog management
           </h1>
-
-          <p className="mt-2 text-sm text-gray-500">
-            Manage your product inventory, update details, or add new
-            items to your catalog.
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Configure specifications, models, and public inventory visibility.
           </p>
         </div>
 
-        <div className="mt-4 sm:mt-0 flex items-center gap-3">
+        <div className="flex items-center gap-2 self-start sm:self-auto">
           <button
             type="button"
-            onClick={() =>
-              fetchProducts({ background: products.length > 0 })
-            }
+            onClick={() => fetchProducts({ background: Boolean(products.length) })}
             disabled={refreshing}
-            title="Refresh products"
-            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition disabled:opacity-60"
+            className="p-2 rounded-xl border border-border bg-card text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
+            title="Refresh"
           >
-            <RefreshCw
-              className={`h-4 w-4 ${
-                refreshing ? "animate-spin" : ""
-              }`}
-            />
-            <span className="hidden sm:inline">
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </span>
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
           </button>
-
           <button
             type="button"
             onClick={() => {
               setSelectedProduct(null);
-              setProductModalOpen(true);
+              setModalOpen(true);
             }}
-            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 transition-all hover:shadow-md active:scale-95"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-opacity"
           >
-            <Plus className="h-5 w-5" />
-            Add Product
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add product</span>
           </button>
         </div>
       </div>
 
-      {/* BACKGROUND REFRESH STATUS */}
-      {refreshing && (
-        <p className="mb-4 text-sm text-gray-500">
-          Updating products...
-        </p>
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50/80 p-3 text-xs text-red-700">
+          {error}
+        </div>
       )}
 
-      {/* ERROR BANNER */}
-      <AnimatePresence>
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 flex items-center justify-between shadow-sm"
-          >
-            <div className="flex items-center gap-3 text-red-700">
-              <AlertTriangle className="h-5 w-5" />
-              <p className="text-sm font-medium">{error}</p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setError("")}
-              className="text-red-500 hover:text-red-700 transition-colors"
-              aria-label="Dismiss error"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* SEARCH BAR */}
-      <div className="mb-6 max-w-md">
-        <div className="relative group">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <Search className="h-5 w-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
-          </div>
-
+      {/* Search Toolbar */}
+      <div className="rounded-xl border border-border bg-card p-3 flex items-center justify-between gap-4">
+        <div className="relative w-full sm:max-w-sm">
+          <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            className="block w-full rounded-xl border border-gray-200 py-2.5 pl-10 pr-4 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all sm:text-sm shadow-sm"
-            placeholder="Search products by name..."
             value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search products by title or slug..."
+            className="w-full rounded-lg border border-border bg-muted/30 py-1.5 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground focus:bg-card"
           />
         </div>
+        <span className="text-xs text-muted-foreground font-mono shrink-0">
+          {filteredProducts.length} {filteredProducts.length === 1 ? "entry" : "entries"}
+        </span>
       </div>
 
-      {/* PRODUCT TABLE */}
-      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-        {filteredProducts.length > 0 ? (
+      {/* Table Content */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        {loading && !products.length ? (
+          <div className="py-16 text-center space-y-2">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground mx-auto" />
+            <p className="text-xs text-muted-foreground">Loading catalog items...</p>
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="py-16 text-center space-y-2">
+            <PackageOpen className="w-8 h-8 text-muted-foreground mx-auto" />
+            <h3 className="text-sm font-medium text-foreground">No products found</h3>
+            <p className="text-xs text-muted-foreground">
+              Add your first product or try another search query.
+            </p>
+          </div>
+        ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50/50">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-border bg-muted/40 text-muted-foreground font-medium">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    Product
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    Slug
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    Date Added
-                  </th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    Actions
-                  </th>
+                  <th className="py-3 px-4 font-normal">Product</th>
+                  <th className="py-3 px-4 font-normal">Identifier (Slug)</th>
+                  <th className="py-3 px-4 font-normal">Status</th>
+                  <th className="py-3 px-4 font-normal text-right">Actions</th>
                 </tr>
               </thead>
-
-              <motion.tbody
-                variants={containerVariants}
-                initial="hidden"
-                animate="show"
-                className="divide-y divide-gray-100 bg-white"
-              >
-                {filteredProducts.map((product) => (
-                  <motion.tr
-                    variants={rowVariants}
-                    key={product.id}
-                    className="transition-colors hover:bg-gray-50/80 group"
-                  >
-                    {/* PRODUCT INFO */}
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 flex-shrink-0">
-                          {product.image ? (
+              <tbody className="divide-y divide-border">
+                {filteredProducts.map((p) => (
+                  <tr key={p.id} className="hover:bg-muted/20 transition-colors">
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted border border-border shrink-0">
+                          {p.image ? (
                             <img
-                              className="h-12 w-12 rounded-xl border border-gray-200 object-cover shadow-sm group-hover:shadow transition-shadow"
-                              src={getImageUrl(product.image)}
-                              alt={product.name}
-                              onError={(event) => {
-                                event.currentTarget.style.display = "none";
-                              }}
+                              src={getImageUrl(p.image)}
+                              alt={p.name}
+                              className="w-full h-full object-cover"
                             />
                           ) : (
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 text-gray-400 border border-gray-200">
-                              <PackageOpen className="h-6 w-6 opacity-50" />
+                            <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">
+                              None
                             </div>
                           )}
                         </div>
-
                         <div>
-                          <div className="text-sm font-semibold text-gray-900">
-                            {product.name}
-                          </div>
-
-                          <div className="text-xs text-gray-500 mt-0.5">
-                            ID: {product.id}
-                          </div>
+                          <p className="font-medium text-foreground tracking-tight">
+                            {p.name}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground line-clamp-1 max-w-xs">
+                            {p.description || "No description provided."}
+                          </p>
                         </div>
                       </div>
                     </td>
 
-                    {/* SLUG */}
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 font-medium">
-                      {product.slug}
+                    <td className="py-3 px-4 font-mono text-[11px] text-muted-foreground">
+                      /{p.slug}
                     </td>
 
-                    {/* STATUS */}
-                    <td className="whitespace-nowrap px-6 py-4">
+                    <td className="py-3 px-4">
                       <span
-                        className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getStatusBadge(
-                          product.status
-                        )}`}
+                        className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium border ${
+                          p.status === "ACTIVE"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : "bg-muted text-muted-foreground border-border"
+                        }`}
                       >
-                        {product.status}
+                        {p.status || "ACTIVE"}
                       </span>
                     </td>
 
-                    {/* DATE */}
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                      {product.createdAt
-                        ? new Date(product.createdAt).toLocaleDateString(
-                            undefined,
-                            {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            }
-                          )
-                        : "—"}
-                    </td>
-
-                    {/* ACTIONS */}
-                    <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="py-3 px-4 text-right">
+                      <div className="inline-flex items-center gap-1">
                         <button
                           type="button"
                           onClick={() => {
-                            setSelectedProduct(product);
-                            setProductModalOpen(true);
+                            setSelectedProduct(p);
+                            setModalOpen(true);
                           }}
-                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Edit Product"
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                          title="Edit"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="w-3.5 h-3.5" />
                         </button>
-
                         <button
                           type="button"
-                          onClick={() => confirmDelete(product)}
-                          disabled={deleting}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                          title="Delete Product"
+                          onClick={() => confirmDelete(p)}
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors"
+                          title="Delete"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>
-                  </motion.tr>
+                  </tr>
                 ))}
-              </motion.tbody>
+              </tbody>
             </table>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
-            <div className="bg-gray-50 p-4 rounded-full mb-4">
-              <PackageOpen className="h-10 w-10 text-gray-400" />
-            </div>
-
-            <h3 className="text-lg font-medium text-gray-900">
-              No products found
-            </h3>
-
-            <p className="mt-1 text-sm text-gray-500 max-w-sm">
-              {searchQuery
-                ? "We couldn't find anything matching your search. Try adjusting your keywords."
-                : "Your inventory is currently empty. Get started by creating a new product."}
-            </p>
-
-            {!searchQuery && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedProduct(null);
-                  setProductModalOpen(true);
-                }}
-                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 transition-all active:scale-95"
-              >
-                <Plus className="h-4 w-4" />
-                New Product
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* RESULTS COUNT */}
-        {filteredProducts.length > 0 && (
-          <div className="border-t border-gray-100 bg-gray-50/50 px-6 py-4 flex items-center justify-between">
-            <p className="text-sm text-gray-500">
-              Showing{" "}
-              <span className="font-semibold text-gray-900">
-                {filteredProducts.length}
-              </span>{" "}
-              of{" "}
-              <span className="font-semibold text-gray-900">
-                {products.length}
-              </span>{" "}
-              products
-            </p>
           </div>
         )}
       </div>
 
-      {/* DELETE CONFIRMATION MODAL */}
-      <AnimatePresence>
-        {deleteModalOpen && productToDelete && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm"
-              onClick={closeDeleteModal}
-            />
-
-            <motion.div
-              variants={modalVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100">
-                  <AlertTriangle className="h-6 w-6 text-red-600" />
-                </div>
-
-                <div className="pt-1">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Delete Product
-                  </h3>
-
-                  <p className="mt-2 text-sm text-gray-600 leading-relaxed">
-                    Are you sure you want to delete{" "}
-                    <span className="font-semibold text-gray-900">
-                      "{productToDelete.name}"
-                    </span>
-                    ? This action cannot be undone and will remove it from
-                    the database entirely.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={closeDeleteModal}
-                  disabled={deleting}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 sm:w-auto"
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="w-full inline-flex items-center justify-center rounded-xl bg-red-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-red-700 transition-colors disabled:opacity-50 sm:w-auto min-w-[120px]"
-                >
-                  {deleting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      Deleting...
-                    </>
-                  ) : (
-                    "Delete Product"
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* ADD / EDIT PRODUCT MODAL */}
+      {/* Product Create/Edit Modal */}
       <ProductModal
-        isOpen={productModalOpen}
+        isOpen={modalOpen}
         product={selectedProduct}
         onClose={() => {
-          setProductModalOpen(false);
+          setModalOpen(false);
           setSelectedProduct(null);
         }}
-        onSuccess={() => {
-          setProductModalOpen(false);
-          setSelectedProduct(null);
-
-          // Refresh after a successful create or edit.
-          fetchProducts({ background: true });
-        }}
+        onSuccess={() => fetchProducts()}
       />
+
+      {/* Delete Confirmation Dialog (Floating layer) */}
+      {deleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-[2px]">
+          <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 space-y-4">
+            <div className="flex items-center gap-2.5 text-red-600">
+              <AlertTriangle className="w-5 h-5 shrink-0" />
+              <h3 className="text-sm font-medium text-foreground tracking-tight">
+                Delete product
+              </h3>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Are you sure you want to remove <strong>"{productToDelete?.name}"</strong>? This action cannot be undone.
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
+              <button
+                type="button"
+                onClick={() => setDeleteModalOpen(false)}
+                disabled={deleting}
+                className="px-3 py-1.5 rounded-xl border border-border bg-card text-xs font-medium text-foreground hover:bg-muted"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="px-3.5 py-1.5 rounded-xl bg-red-600 text-white text-xs font-medium hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleting ? "Deleting..." : "Delete product"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from "react";
+import { X, UploadCloud, Loader2, AlertCircle } from "lucide-react";
 
-const API_URL = "http://localhost:5000/api";
-const SERVER_URL = "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const BACKEND_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+).replace(/\/api\/?$/, "");
 
 export default function ServiceForm({
   isOpen,
@@ -25,10 +28,6 @@ export default function ServiceForm({
 
   const isEditing = Boolean(service);
 
-  // ==========================================
-  // LOAD SERVICE WHEN EDITING
-  // ==========================================
-
   useEffect(() => {
     if (!isOpen) return;
 
@@ -46,14 +45,9 @@ export default function ServiceForm({
 
       if (service.image) {
         setPreview(
-          service.image.startsWith("http://") ||
-            service.image.startsWith("https://")
+          service.image.startsWith("http://") || service.image.startsWith("https://")
             ? service.image
-            : `${SERVER_URL}${
-                service.image.startsWith("/")
-                  ? service.image
-                  : `/${service.image}`
-              }`
+            : `${BACKEND_URL}${service.image.startsWith("/") ? "" : "/"}${service.image}`
         );
       } else {
         setPreview("");
@@ -66,71 +60,35 @@ export default function ServiceForm({
         image: "",
         status: "ACTIVE",
       });
-
       setPreview("");
     }
   }, [isOpen, service]);
 
-  // ==========================================
-  // HANDLE INPUT
-  // ==========================================
+  if (!isOpen) return null;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+      ...(name === "name" && !service
+        ? {
+            slug: value
+              .toLowerCase()
+              .trim()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/^-+|-+$/g, ""),
+          }
+        : {}),
     }));
   };
-
-  // ==========================================
-  // AUTO GENERATE SLUG
-  // ==========================================
-
-  const generateSlug = (value) => {
-    return value
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s-]/g, "")
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-");
-  };
-
-  const handleNameChange = (e) => {
-    const value = e.target.value;
-
-    setFormData((prev) => ({
-      ...prev,
-      name: value,
-      slug:
-        !isEditing || !prev.slug
-          ? generateSlug(value)
-          : prev.slug,
-    }));
-  };
-
-  // ==========================================
-  // IMAGE SELECTION
-  // ==========================================
 
   const handleImageChange = (e) => {
-    const file = e.target.files?.[0];
-
+    const file = e.target.files[0];
     if (!file) return;
 
-    const allowedTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/webp",
-      "image/gif",
-    ];
-
-    if (!allowedTypes.includes(file.type)) {
-      setError(
-        "Only JPG, JPEG, PNG, WEBP and GIF images are allowed."
-      );
+    if (!file.type.startsWith("image/")) {
+      setError("Please select a valid image file.");
       return;
     }
 
@@ -139,97 +97,47 @@ export default function ServiceForm({
       return;
     }
 
-    setError("");
     setSelectedImage(file);
-
-    const objectUrl = URL.createObjectURL(file);
-    setPreview(objectUrl);
+    setPreview(URL.createObjectURL(file));
+    setError("");
   };
-
-  // ==========================================
-  // UPLOAD IMAGE
-  // ==========================================
-
-  const uploadImage = async () => {
-    if (!selectedImage) {
-      return formData.image;
-    }
-
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      throw new Error("You are not authenticated.");
-    }
-
-    setUploading(true);
-
-    try {
-      const uploadData = new FormData();
-
-      uploadData.append("image", selectedImage);
-
-      const response = await fetch(
-        `${API_URL}/images/product`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: uploadData,
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to upload image"
-        );
-      }
-
-      return data.image;
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  // ==========================================
-  // SUBMIT
-  // ==========================================
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     setError("");
-
-    if (!formData.name.trim()) {
-      setError("Service name is required.");
-      return;
-    }
-
-    if (!formData.slug.trim()) {
-      setError("Service slug is required.");
-      return;
-    }
-
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      setError("You are not authenticated.");
-      return;
-    }
-
     setSaving(true);
 
     try {
-      // Upload new image first if selected
-      const imagePath = await uploadImage();
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("You are not authenticated.");
+
+      let imageUrl = formData.image;
+
+      if (selectedImage) {
+        setUploading(true);
+        const uploadData = new FormData();
+        uploadData.append("image", selectedImage);
+
+        const uploadRes = await fetch(`${API_URL}/upload`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: uploadData,
+        });
+
+        const uploadJson = await uploadRes.json();
+        if (!uploadRes.ok) {
+          throw new Error(uploadJson.message || "Failed to upload image.");
+        }
+
+        imageUrl = uploadJson.imageUrl || uploadJson.url || uploadJson.path;
+        setUploading(false);
+      }
 
       const payload = {
         name: formData.name.trim(),
         slug: formData.slug.trim(),
         description: formData.description.trim(),
-        image: imagePath || null,
+        image: imageUrl,
         status: formData.status,
       };
 
@@ -239,7 +147,7 @@ export default function ServiceForm({
 
       const method = isEditing ? "PUT" : "POST";
 
-      const response = await fetch(url, {
+      const res = await fetch(url, {
         method,
         headers: {
           "Content-Type": "application/json",
@@ -248,294 +156,157 @@ export default function ServiceForm({
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message ||
-            `Failed to ${
-              isEditing ? "update" : "create"
-            } service`
-        );
+      const resJson = await res.json();
+      if (!res.ok) {
+        throw new Error(resJson.message || "Failed to save service.");
       }
 
-      onSuccess(data.service);
+      onSuccess();
       onClose();
     } catch (err) {
-      console.error("SERVICE FORM ERROR:", err);
-
-      setError(
-        err.message ||
-          "Something went wrong. Please try again."
-      );
+      console.error("SERVICE SAVE ERROR:", err);
+      setError(err.message || "An unexpected error occurred.");
     } finally {
       setSaving(false);
+      setUploading(false);
     }
   };
 
-  // ==========================================
-  // CLOSE
-  // ==========================================
-
-  const handleClose = () => {
-    if (saving || uploading) return;
-
-    setError("");
-    setSelectedImage(null);
-    setPreview("");
-    onClose();
-  };
-
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      {/* Overlay */}
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={handleClose}
-      />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-[2px]">
+      <div className="w-full max-w-lg rounded-xl border border-border bg-card p-6 space-y-5 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between pb-3 border-b border-border">
+          <h2 className="text-base font-medium text-foreground tracking-tight">
+            {isEditing ? "Edit service" : "Add new engineering service"}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
-      {/* Modal */}
-      <div className="relative flex min-h-screen items-center justify-center p-4">
-        <div className="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">
-                {isEditing ? "Edit Service" : "Add Service"}
-              </h2>
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50/80 p-3 flex items-start gap-2 text-xs text-red-700">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
 
-              <p className="mt-1 text-sm text-gray-500">
-                {isEditing
-                  ? "Update the service information."
-                  : "Add a new service to your website."}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={saving || uploading}
-              className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-            >
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-foreground block">
+              Service name
+            </label>
+            <input
+              type="text"
+              name="name"
+              required
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="e.g. Substation Maintenance & Testing"
+              className="w-full rounded-lg border border-border bg-muted/30 py-2 px-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-foreground focus:bg-card"
+            />
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-5 px-6 py-6">
-              {/* Error */}
-              {error && (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {error}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-foreground block">
+              URL slug
+            </label>
+            <input
+              type="text"
+              name="slug"
+              required
+              value={formData.slug}
+              onChange={handleChange}
+              placeholder="substation-maintenance"
+              className="w-full rounded-lg border border-border bg-muted/30 py-2 px-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-foreground focus:bg-card font-mono"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-foreground block">
+              Scope description
+            </label>
+            <textarea
+              name="description"
+              rows={3}
+              value={formData.description}
+              onChange={handleChange}
+              placeholder="Detailed capabilities, testing tools, and standards applied..."
+              className="w-full rounded-lg border border-border bg-muted/30 py-2 px-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-foreground focus:bg-card resize-none"
+            />
+          </div>
+
+          {/* Image */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-foreground block">
+              Service illustration image
+            </label>
+            <div className="flex items-center gap-4">
+              {preview && (
+                <div className="w-16 h-16 rounded-lg overflow-hidden border border-border bg-muted shrink-0">
+                  <img src={preview} alt="Preview" className="w-full h-full object-cover" />
                 </div>
               )}
-
-              {/* Name */}
-              <div>
-                <label
-                  htmlFor="service-name"
-                  className="mb-1.5 block text-sm font-medium text-gray-700"
-                >
-                  Service Name
-                </label>
-
+              <label className="flex-1 cursor-pointer rounded-lg border border-dashed border-border bg-muted/20 p-3 text-center hover:bg-muted/40 transition-colors">
+                <UploadCloud className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground block">
+                  {selectedImage ? selectedImage.name : "Select image file"}
+                </span>
                 <input
-                  id="service-name"
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleNameChange}
-                  placeholder="e.g. Web Design & Development"
-                  className="block w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                  disabled={saving || uploading}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
                 />
-              </div>
-
-              {/* Slug */}
-              <div>
-                <label
-                  htmlFor="service-slug"
-                  className="mb-1.5 block text-sm font-medium text-gray-700"
-                >
-                  Slug
-                </label>
-
-                <input
-                  id="service-slug"
-                  type="text"
-                  name="slug"
-                  value={formData.slug}
-                  onChange={handleChange}
-                  placeholder="web-design-development"
-                  className="block w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                  disabled={saving || uploading}
-                />
-
-                <p className="mt-1 text-xs text-gray-400">
-                  Used as the unique identifier for the service.
-                </p>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label
-                  htmlFor="service-description"
-                  className="mb-1.5 block text-sm font-medium text-gray-700"
-                >
-                  Description
-                </label>
-
-                <textarea
-                  id="service-description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows="4"
-                  placeholder="Describe what this service offers..."
-                  className="block w-full resize-none rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                  disabled={saving || uploading}
-                />
-              </div>
-
-              {/* Image */}
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                  Service Image
-                </label>
-
-                <div className="flex items-start gap-5">
-                  {/* Preview */}
-                  <div className="flex h-28 w-28 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
-                    {preview ? (
-                      <img
-                        src={preview}
-                        alt="Service preview"
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <svg
-                        className="h-8 w-8 text-gray-300"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="1.5"
-                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-10h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                    )}
-                  </div>
-
-                  {/* Upload */}
-                  <div className="flex-1">
-                    <input
-                      type="file"
-                      id="service-image"
-                      accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-                      onChange={handleImageChange}
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-indigo-700 hover:file:bg-indigo-100"
-                      disabled={saving || uploading}
-                    />
-
-                    <p className="mt-2 text-xs text-gray-400">
-                      JPG, JPEG, PNG, WEBP or GIF. Maximum 5MB.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Status */}
-              <div>
-                <label
-                  htmlFor="service-status"
-                  className="mb-1.5 block text-sm font-medium text-gray-700"
-                >
-                  Status
-                </label>
-
-                <select
-                  id="service-status"
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                  disabled={saving || uploading}
-                >
-                  <option value="ACTIVE">Active</option>
-                  <option value="DRAFT">Draft</option>
-                </select>
-              </div>
+              </label>
             </div>
+          </div>
 
-            {/* Footer */}
-            <div className="flex justify-end gap-3 border-t border-gray-200 bg-gray-50 px-6 py-4">
-              <button
-                type="button"
-                onClick={handleClose}
-                disabled={saving || uploading}
-                className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Cancel
-              </button>
+          {/* Status */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-foreground block">
+              Service status
+            </label>
+            <select
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              className="w-full rounded-lg border border-border bg-muted/30 py-2 px-3 text-xs sm:text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-foreground focus:bg-card"
+            >
+              <option value="ACTIVE">Active (Offered publicly)</option>
+              <option value="DRAFT">Draft</option>
+            </select>
+          </div>
 
-              <button
-                type="submit"
-                disabled={saving || uploading}
-                className="inline-flex items-center rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {(saving || uploading) && (
-                  <svg
-                    className="mr-2 h-4 w-4 animate-spin"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
-                  </svg>
-                )}
-
-                {uploading
-                  ? "Uploading..."
-                  : saving
-                  ? isEditing
-                    ? "Updating..."
-                    : "Creating..."
-                  : isEditing
-                  ? "Update Service"
-                  : "Create Service"}
-              </button>
-            </div>
-          </form>
-        </div>
+          <div className="pt-3 border-t border-border flex items-center justify-end gap-2.5">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={saving}
+              className="px-4 py-2 rounded-xl border border-border bg-card text-xs font-medium text-foreground hover:bg-muted transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving || uploading}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+            >
+              {saving || uploading ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <span>{isEditing ? "Save changes" : "Create service"}</span>
+              )}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

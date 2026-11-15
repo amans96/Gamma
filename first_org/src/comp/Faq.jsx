@@ -1,70 +1,63 @@
 import { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import faqData from "../data/faqsData.js";
 
-const Faq = () => {
+export default function Faq() {
   const [activeId, setActiveId] = useState(null);
 
   const handleToggle = (id) => {
-    setActiveId(activeId === id ? null : id);
+    setActiveId((prev) => (prev === id ? null : id));
   };
 
   return (
-    <section
-      id="faqs"
-      className="w-full py-20 text-white bg-gradient-to-b from-transparent via-transparent via-50% to-[#030619]"
-    >
-      <div className="max-w-4xl mx-auto px-4">
-
-        <h2 className="text-4xl md:text-5xl font-bold text-center text-black mb-4">
-          Frequently Asked Questions
-        </h2>
-
-        <p className="text-center text-gray-400 mb-12">
-          Everything you need to know before starting your coding journey.
-        </p>
-
-        <div className="space-y-4">
-          {faqData.map((faq) => (
-            <div
-              key={faq.id}
-              className="border border-white/10 bg-[#030619]/80 backdrop-blur-md rounded-xl overflow-hidden shadow-lg"
-            >
-              <button
-                onClick={() => handleToggle(faq.id)}
-                className="w-full flex items-center justify-between p-5 text-left hover:bg-white/5 transition"
-              >
-                <span className="font-semibold text-lg">
-                  {faq.question}
-                </span>
-
-                {activeId === faq.id ? (
-                  <ChevronUp size={24} />
-                ) : (
-                  <ChevronDown size={24} />
-                )}
-              </button>
-
-              <div
-                className={`grid transition-all duration-300 ease-in-out ${
-                  activeId === faq.id
-                    ? "grid-rows-[1fr] opacity-100"
-                    : "grid-rows-[0fr] opacity-0"
-                }`}
-              >
-                <div className="overflow-hidden">
-                  <p className="px-5 pb-5 text-gray-400 leading-relaxed">
-                    {faq.answer}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
+    <section id="faqs" className="w-full py-16 sm:py-24 bg-background border-b border-border">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16">
+          <p className="text-xs font-medium text-muted-foreground mb-1.5">
+            Knowledge base
+          </p>
+          <h2 className="text-2xl sm:text-3xl font-normal tracking-tight text-foreground mb-3">
+            Frequently asked questions
+          </h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Essential information regarding equipment specifications, testing procedures, and deployment support.
+          </p>
         </div>
 
+        {/* FAQ Accordion List */}
+        <div className="space-y-3">
+          {faqData.map((faq) => {
+            const isOpen = activeId === faq.id;
+            return (
+              <div
+                key={faq.id}
+                className="rounded-xl border border-border bg-card overflow-hidden transition-colors"
+              >
+                <button
+                  type="button"
+                  onClick={() => handleToggle(faq.id)}
+                  aria-expanded={isOpen}
+                  className="w-full flex items-center justify-between p-4 sm:p-5 text-left text-sm sm:text-base font-medium text-foreground hover:bg-muted/40 transition-colors gap-4"
+                >
+                  <span>{faq.question}</span>
+                  <ChevronDown
+                    className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200 ${
+                      isOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {isOpen && (
+                  <div className="px-4 sm:px-5 pb-5 text-sm text-muted-foreground leading-relaxed border-t border-border/40 pt-3">
+                    {faq.answer}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
-};
-
-export default Faq;
+}

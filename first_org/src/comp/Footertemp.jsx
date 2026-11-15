@@ -1,184 +1,141 @@
+import { Link } from "react-router-dom";
 import {
   FaGithub,
   FaLinkedin,
   FaYoutube,
   FaDiscord,
 } from "react-icons/fa";
-import { Link } from "react-router-dom";
 import { footerLinks, socialLinks } from "../data/footerData";
+import logo from "../assets/image.png";
 
-const Footer = () => {
+export default function Footer() {
+  const getSocialIcon = (name) => {
+    switch (name.toLowerCase()) {
+      case "linkedin":
+        return <FaLinkedin className="w-4 h-4" />;
+      case "youtube":
+        return <FaYoutube className="w-4 h-4" />;
+      case "discord":
+        return <FaDiscord className="w-4 h-4" />;
+      case "github":
+        return <FaGithub className="w-4 h-4" />;
+      default:
+        return null;
+    }
+  };
+
   return (
-    <footer className="relative bg-[#020617] overflow-hidden text-white">
-      {/* Background Text */}
-      <div
-        className="
-          absolute
-          inset-0
-          flex
-          items-center
-          justify-center
-          pointer-events-none
-          select-none
-          overflow-hidden
-        "
-      >
-        <h1
-          className="
-            text-[45px]
-            sm:text-[70px]
-            md:text-[110px]
-            lg:text-[140px]
-            font-black
-            uppercase
-            tracking-wider
-            opacity-10
-            blur-[2px]
-            leading-[0.9]
-            flex
-            flex-col
-            sm:block
-            text-center
-          "
-        >
-          <span className="text-white block sm:inline">Gamma</span>
-          <span className="text-[#e78c16] block sm:inline sm:ml-2">SOLUTIONS</span>
-        </h1>
-      </div>
-
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20 md:py-24">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
-          {/* Company */}
-          <div>
-            <h3 className="font-bold text-base sm:text-lg mb-4 sm:mb-5">
-              Company
-            </h3>
-            <ul className="space-y-2 sm:space-y-3 text-slate-400 text-sm sm:text-base">
-              {footerLinks.company?.map((item) => (
-                <li
-                  key={item.title}
-                  className="hover:text-white cursor-pointer transition"
-                >
-                <Link to={item.link} className="hover:text-white transition">
-  {item.title}
-</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Products */}
-          <div>
-            <h3 className="font-bold text-base sm:text-lg mb-4 sm:mb-5">
-              Products
-            </h3>
-            <ul className="space-y-2 sm:space-y-3 text-slate-400 text-sm sm:text-base">
-              {footerLinks.products?.map((item) => (
-                <li
-                  key={item.title}
-                  className="hover:text-white cursor-pointer transition"
-                >
-                 <Link to={item.link} className="hover:text-white transition">
-  {item.title}
-</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Services */}
-          <div>
-            <h3 className="font-bold text-base sm:text-lg mb-4 sm:mb-5">
-              Services
-            </h3>
-            <ul className="space-y-2 sm:space-y-3 text-slate-400 text-sm sm:text-base">
-              {footerLinks.services?.map((item) => (
-                <li
-                  key={item.title}
-                  className="hover:text-white cursor-pointer transition"
-                >
-               <Link to={item.link} className="hover:text-white transition">
-  {item.title}
-</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Support */}
-          <div>
-            <h3 className="font-bold text-base sm:text-lg mb-4 sm:mb-5">
-              Support
-            </h3>
-            <ul className="space-y-2 sm:space-y-3 text-slate-400 text-sm sm:text-base">
-              {footerLinks.support?.map((item) => (
-                <li
-                  key={item.title}
-                  className="hover:text-white cursor-pointer transition"
-                >
-                <Link to={item.link} className="hover:text-white transition">
-  {item.title}
-</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="h-px bg-slate-800 my-10 sm:my-12"></div>
-
-        {/* Bottom */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-          <div className="text-center md:text-left">
-            <h2 className="text-1xl sm:text-3xl font-bold">
-              Gamma<span className="text-[#e78c16]"> Solutions</span>
-            </h2>
-            <p className="text-slate-400 mt-2 text-sm sm:text-base">
-              Powering the Future
+    <footer className="w-full bg-card border-t border-border text-foreground pt-14 pb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Main Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 lg:gap-12 pb-12">
+          {/* Brand Info Column */}
+          <div className="col-span-2 space-y-4">
+            <Link to="/" className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl border border-border bg-muted/60 flex items-center justify-center p-1 shrink-0">
+                <img
+                  src={logo}
+                  alt="Gamma Solutions"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <span className="text-base font-medium tracking-tight text-foreground">
+                Gamma Solutions
+              </span>
+            </Link>
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-sm">
+              Engineered electrical infrastructure, high-voltage transformers, and turnkey substation solutions built for continuous industrial uptime.
             </p>
-          </div>
-
-          <div className="flex items-center gap-2 sm:gap-3">
-            {socialLinks?.map((social) => {
-              let Icon;
-              switch (social.name.toLowerCase()) {
-                case "linkedin":
-                  Icon = FaLinkedin;
-                  break;
-                case "youtube":
-                  Icon = FaYoutube;
-                  break;
-                case "discord":
-                  Icon = FaDiscord;
-                  break;
-                case "github":
-                  Icon = FaGithub;
-                  break;
-                default:
-                  return null;
-              }
-              return (
+            <div className="flex items-center gap-2 pt-1">
+              {socialLinks?.map((social) => (
                 <a
                   key={social.name}
                   href={social.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="cursor-pointer hover:scale-110 transition text-slate-400 hover:text-white"
+                  aria-label={social.name}
+                  className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 >
-                  <Icon size={20} />
+                  {getSocialIcon(social.name)}
                 </a>
-              );
-            })}
+              ))}
+            </div>
+          </div>
+
+          {/* Company Links */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-foreground tracking-tight">
+              Company
+            </p>
+            <ul className="space-y-2">
+              {footerLinks.company?.map((item) => (
+                <li key={item.title}>
+                  <Link
+                    to={item.link}
+                    className="text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {item.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Products Links */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-foreground tracking-tight">
+              Products
+            </p>
+            <ul className="space-y-2">
+              {footerLinks.products?.map((item) => (
+                <li key={item.title}>
+                  <Link
+                    to={item.link}
+                    className="text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {item.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Services & Support */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-foreground tracking-tight">
+              Services
+            </p>
+            <ul className="space-y-2">
+              {footerLinks.services?.map((item) => (
+                <li key={item.title}>
+                  <Link
+                    to={item.link}
+                    className="text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {item.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 
-        <div className="text-center text-slate-500 mt-10 sm:mt-12 text-sm sm:text-base">
-          © 2026 Gamma Solutions. All rights reserved.
+        {/* Bottom Row */}
+        <div className="border-t border-border pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
+          <p>© {new Date().getFullYear()} Gamma Solutions. All rights reserved.</p>
+          <div className="flex items-center gap-6">
+            <Link to="/about" className="hover:text-foreground transition-colors">
+              About
+            </Link>
+            <Link to="/contact" className="hover:text-foreground transition-colors">
+              Contact
+            </Link>
+            <Link to="/login" className="hover:text-foreground transition-colors">
+              Admin
+            </Link>
+          </div>
         </div>
       </div>
     </footer>
   );
-};
-
-export default Footer;
+}

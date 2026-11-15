@@ -1,30 +1,19 @@
-import React, { useRef, useState, useEffect } from "react";
-import {
-  Play,
-  Pause,
-  Volume2,
-  VolumeX,
-  Maximize,
-  Minimize,
-  ArrowDown,
-} from "lucide-react";
+import React, { useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { Play, Pause, Volume2, VolumeX, ArrowRight } from "lucide-react";
 
-const HeroPage = ({
+export default function HeroPage({
   pageName,
   subtitle,
   media,
   mediaType = "image",
-}) => {
-  const containerRef = useRef(null);
+}) {
   const videoRef = useRef(null);
-
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const togglePlay = () => {
     if (!videoRef.current) return;
-
     if (videoRef.current.paused) {
       videoRef.current.play();
       setIsPlaying(true);
@@ -36,51 +25,25 @@ const HeroPage = ({
 
   const toggleMute = () => {
     if (!videoRef.current) return;
-
     videoRef.current.muted = !videoRef.current.muted;
     setIsMuted(videoRef.current.muted);
   };
 
-  const toggleFullscreen = () => {
-    if (!containerRef.current) return;
+  const isLandingHero = !pageName || pageName.trim() === "";
 
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().catch((err) => {
-        console.error("Fullscreen error:", err);
-      });
-    } else {
-      document.exitFullscreen();
-    }
-  };
+  const titleText = isLandingHero
+    ? "Powering industrial infrastructure with precision engineering."
+    : pageName;
 
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-
-    document.addEventListener(
-      "fullscreenchange",
-      handleFullscreenChange
-    );
-
-    return () => {
-      document.removeEventListener(
-        "fullscreenchange",
-        handleFullscreenChange
-      );
-    };
-  }, []);
+  const subtitleText = isLandingHero
+    ? "High-performance power transformers, distribution solutions, and turnkey electrical engineering services built for demanding operations."
+    : subtitle;
 
   return (
-    <section
-      ref={containerRef}
-      className="group relative flex min-h-[100dvh] w-full items-center justify-center overflow-hidden bg-black"
-    >
-      {/* =========================
-          BACKGROUND MEDIA
-      ========================== */}
+    <section className="relative w-full overflow-hidden bg-slate-950 text-white min-h-[75vh] lg:min-h-[82vh] flex items-center">
+      {/* Background Media */}
       <div className="absolute inset-0 overflow-hidden">
-        {mediaType === "video" ? (
+        {mediaType === "video" && media ? (
           <video
             ref={videoRef}
             autoPlay
@@ -89,261 +52,80 @@ const HeroPage = ({
             playsInline
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
-            className="
-              h-full
-              w-full
-              object-cover
-              scale-105
-              transition-transform
-              duration-[3000ms]
-              ease-out
-              group-hover:scale-110
-            "
+            className="h-full w-full object-cover opacity-45"
           >
             <source src={media} type="video/mp4" />
           </video>
-        ) : (
+        ) : media ? (
           <img
             src={media}
-            alt={pageName}
-            className="
-              h-full
-              w-full
-              object-cover
-              scale-105
-              transition-transform
-              duration-[3000ms]
-              ease-out
-              group-hover:scale-110
-            "
+            alt={titleText}
+            className="h-full w-full object-cover opacity-40"
           />
-        )}
+        ) : null}
 
-        {/* Cinematic gradient */}
-        <div
-          className="
-            absolute
-            inset-0
-            bg-gradient-to-b
-            from-black/20
-            via-black/35
-            to-black/80
-          "
-        />
-
-        {/* Side vignette */}
-        <div
-          className="
-            absolute
-            inset-0
-            bg-[radial-gradient(circle_at_center,transparent_20%,rgba(0,0,0,0.65)_100%)]
-          "
-        />
-
-        {/* Animated glow */}
-        <div
-          className="
-            absolute
-            left-1/2
-            top-1/2
-            h-[500px]
-            w-[500px]
-            -translate-x-1/2
-            -translate-y-1/2
-            rounded-full
-            bg-white/5
-            blur-[120px]
-            animate-pulse
-          "
-        />
+        {/* Calm tinted overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-slate-950/40" />
       </div>
 
-      {/* =========================
-          HERO CONTENT
-      ========================== */}
-      <div className="relative z-10 mx-auto flex max-w-6xl flex-col items-center px-6 text-center">
-        
-        {/* Eyebrow */}
-    
+      {/* Hero Content */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28 w-full">
+        <div className="max-w-3xl space-y-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-white/10 text-white/90 text-xs font-medium border border-white/15">
+            <span>Engineering Excellence</span>
+          </div>
 
-        {/* Main heading */}
-        <h1
-          className="
-            max-w-5xl
-            text-5xl
-            font-semibold
-            tracking-[-0.04em]
-            text-white
-            drop-shadow-2xl
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-normal tracking-tight text-white leading-[1.12]">
+            {titleText}
+          </h1>
 
-            sm:text-6xl
-            md:text-7xl
-            lg:text-8xl
+          {subtitleText && (
+            <p className="text-base sm:text-lg text-slate-300 leading-relaxed max-w-2xl font-normal">
+              {subtitleText}
+            </p>
+          )}
 
-            animate-[fadeUp_1s_ease-out]
-          "
-        >
-          {pageName}
-        </h1>
-
-        {/* Subtitle */}
-        {subtitle && (
-          <p
-            className="
-              mt-6
-              max-w-2xl
-              text-base
-              leading-relaxed
-              text-white/65
-              sm:text-lg
-              md:text-xl
-              animate-[fadeUp_1.2s_ease-out]
-            "
-          >
-            {subtitle}
-          </p>
-        )}
-
-        {/* CTA */}
-        <div
-          className="
-            mt-10
-            flex
-            flex-col
-            gap-3
-            sm:flex-row
-            animate-[fadeUp_1.4s_ease-out]
-          "
-        >
-         
-
-         
+          {isLandingHero && (
+            <div className="pt-2 flex flex-wrap items-center gap-3">
+              <Link
+                to="/products"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-slate-900 font-medium text-sm hover:bg-slate-100 transition-colors"
+              >
+                <span>Explore products</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                to="/contact"
+                className="inline-flex items-center px-5 py-2.5 rounded-xl bg-white/10 text-white font-medium text-sm hover:bg-white/15 border border-white/20 transition-colors"
+              >
+                Contact our engineers
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* =========================
-          VIDEO CONTROLS
-      ========================== */}
-      {mediaType === "video" && (
-        <div
-          className="
-            absolute
-            bottom-6
-            left-6
-            z-20
-
-            flex
-            items-center
-            gap-1
-
-            rounded-full
-            border
-            border-white/15
-            bg-black/30
-            p-1.5
-
-            shadow-2xl
-            backdrop-blur-2xl
-
-            md:bottom-8
-            md:left-8
-
-            transition-all
-            duration-300
-            hover:border-white/30
-            hover:bg-black/50
-          "
-        >
+      {/* Video controls (calm squircle pill in bottom right) */}
+      {mediaType === "video" && media && (
+        <div className="absolute bottom-6 right-6 z-20 flex items-center gap-1.5 rounded-xl bg-slate-900/80 border border-white/15 p-1 backdrop-blur-sm">
           <button
+            type="button"
             onClick={togglePlay}
-            aria-label={isPlaying ? "Pause video" : "Play video"}
-            className="
-              flex
-              h-10
-              w-10
-              items-center
-              justify-center
-              rounded-full
-              text-white
-              transition-all
-              duration-200
-              hover:bg-white/15
-              hover:scale-105
-            "
+            aria-label={isPlaying ? "Pause background video" : "Play background video"}
+            className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
           >
-            {isPlaying ? (
-              <Pause size={19} className="fill-current" />
-            ) : (
-              <Play size={19} className="ml-0.5 fill-current" />
-            )}
+            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
           </button>
-
           <button
+            type="button"
             onClick={toggleMute}
-            aria-label={isMuted ? "Unmute video" : "Mute video"}
-            className="
-              flex
-              h-10
-              w-10
-              items-center
-              justify-center
-              rounded-full
-              text-white
-              transition-all
-              duration-200
-              hover:bg-white/15
-              hover:scale-105
-            "
+            aria-label={isMuted ? "Unmute audio" : "Mute audio"}
+            className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
           >
-            {isMuted ? (
-              <VolumeX size={19} />
-            ) : (
-              <Volume2 size={19} />
-            )}
-          </button>
-
-          <div className="mx-1 h-5 w-px bg-white/15" />
-
-          <button
-            onClick={toggleFullscreen}
-            aria-label={
-              isFullscreen
-                ? "Exit fullscreen"
-                : "Enter fullscreen"
-            }
-            className="
-              flex
-              h-10
-              w-10
-              items-center
-              justify-center
-              rounded-full
-              text-white
-              transition-all
-              duration-200
-              hover:bg-white/15
-              hover:scale-105
-            "
-          >
-            {isFullscreen ? (
-              <Minimize size={18} />
-            ) : (
-              <Maximize size={18} />
-            )}
+            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
         </div>
       )}
-
-      {/* =========================
-          SCROLL INDICATOR
-      ========================== */}
-    
-       
-
-       
-      
     </section>
   );
-};
-
-export default HeroPage;
+}

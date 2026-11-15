@@ -1,14 +1,13 @@
-import Services from "../comp/Services";
+import Services from "../comp/Services.jsx";
+import Footertemp from "../comp/Footertemp.jsx";
 
-function ServicesPage() {
-
+export default function ServicesPage() {
   return (
-    <div>
-     <Services />
+    <div className="w-full bg-background min-h-screen flex flex-col justify-between">
+      <main className="flex-1">
+        <Services />
+      </main>
+      <Footertemp />
     </div>
-  )
+  );
 }
-
-
-
-export default ServicesPage;
